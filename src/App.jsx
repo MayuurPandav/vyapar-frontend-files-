@@ -1,0 +1,89 @@
+import React from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
+import Login from './views/Login';
+import Dashboard from './views/Dashboard';
+import SuperAdmin from './views/SuperAdmin';
+
+function AppContent() {
+  const { token, user, viewOnly, backToSuperAdmin } = useApp();
+  const [globalSearch, setGlobalSearch] = React.useState('');
+
+  // 1. If not logged in, render the login view
+  if (!token || !user) {
+    return <Login />;
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+
+  return (
+    <div className="app">
+      {/* Global Sidebar (adapts automatically to regular vs super admin tabs) */}
+      <Sidebar />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Simulating Tenant Session Warning Banner */}
+        {viewOnly && (
+          <div 
+            style={{ 
+              background: 'linear-gradient(90deg, #f59e0b, #d97706)', 
+              color: '#fff', 
+              padding: '12px 24px', 
+              fontWeight: 'bold', 
+              fontSize: '14px', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              boxShadow: '0 4px 12px rgba(245,158,11,0.2)', 
+              zIndex: 1000, 
+              marginLeft: '250px' 
+            }}
+          >
+            <span>
+              <i className="fas fa-triangle-exclamation" style={{ marginRight: '8px' }}></i>
+              ⛔ VIEW-ONLY SIMULATION: Simulated Tenant Session (<b>{user.username}</b>). All mutation edits are blocked.
+            </span>
+            <button 
+              className="btn btn--sm" 
+              style={{ 
+                backgroundColor: '#fff', 
+                color: '#d97706', 
+                border: 'none', 
+                borderRadius: '4px', 
+                fontWeight: 'bold', 
+                padding: '6px 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }} 
+              onClick={backToSuperAdmin}
+            >
+              <i className="fas fa-arrow-left"></i> Exit Simulator & Return to Master Control
+            </button>
+          </div>
+        )}
+
+        {/* Core Layout Routing */}
+        {isSuperAdmin && !viewOnly ? (
+          // Master Admin views
+          <SuperAdmin />
+        ) : (
+          // Regular Admin & simulated tenant views
+          <main className="main">
+            <Topbar onSearch={setGlobalSearch} />
+            <Dashboard globalSearch={globalSearch} />
+          </main>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}

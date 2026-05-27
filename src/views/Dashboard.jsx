@@ -405,11 +405,18 @@ export default function Dashboard({ globalSearch = '' }) {
   const [saleNotes, setSaleNotes] = useState('');
 
   // Purchase Form items builder
-  const [purItems, setPurItems] = useState([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '' }]);
+  const [purItems, setPurItems] = useState([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }]);
   const [purSupp, setPurSupp] = useState('');
   const [purDate, setPurDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [purMode, setPurMode] = useState('Cash');
   const [purNotes, setPurNotes] = useState('');
+  const [purType, setPurType] = useState('Purchase Invoice');
+  const [purAdditionalCharges, setPurAdditionalCharges] = useState(0);
+  const [purDueDate, setPurDueDate] = useState('');
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [purchaseSearch, setPurchaseSearch] = useState('');
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [purchaseReportData, setPurchaseReportData] = useState(null);
   const [productAlerts, setProductAlerts] = useState({ lowStock: [], expirySoon: [] });
 
   // Verification & Profile forms
@@ -630,7 +637,8 @@ export default function Dashboard({ globalSearch = '' }) {
   // Real-time tax and pricing calculations
   const calculateLineItem = (item) => {
     const qty = parseFloat(item.qty) || 0;
-    const rate = parseFloat(item.rate) || 0;
+    const discount = parseFloat(item.discount) || 0;
+    const rate = Math.max(0, (parseFloat(item.rate) || 0) - discount);
     let slabPercent = 0;
     if (item.taxSlab && item.taxSlab !== 'Exempt') {
       slabPercent = parseFloat(item.taxSlab) || 0;
@@ -716,10 +724,11 @@ export default function Dashboard({ globalSearch = '' }) {
     });
     const supplierParty = dbData.parties.find(p => p.name === purSupp);
     const isLocal = (supplierParty?.state || 'Karnataka').toLowerCase() === (dbData.settings?.state || 'Karnataka').toLowerCase();
+    const finalTotal = total + (parseFloat(purAdditionalCharges) || 0);
     return {
       subtotal: Math.round(subtotal * 100) / 100,
       taxAmount: Math.round(taxAmount * 100) / 100,
-      total: Math.round(total * 100) / 100,
+      total: Math.round(finalTotal * 100) / 100,
       isLocal,
       cgst: isLocal ? taxAmount / 2 : 0,
       sgst: isLocal ? taxAmount / 2 : 0,
@@ -956,6 +965,7 @@ export default function Dashboard({ globalSearch = '' }) {
         ...item,
         qty: parseInt(item.qty) || 1,
         rate: parseFloat(item.rate) || 0,
+        discount: parseFloat(item.discount) || 0,
         taxSlab: item.taxSlab || '18%',
         isTaxInclusive: item.isTaxInclusive === true || item.isTaxInclusive === 'true',
         hsnSac: item.hsnSac || '',
@@ -967,10 +977,9 @@ export default function Dashboard({ globalSearch = '' }) {
 
     if (items.length === 0) return alert('Please add at least one valid product.');
 
-    const grandTotal = Math.round(totalAmount);
+    const grandTotal = Math.round(totalAmount + (parseFloat(purAdditionalCharges) || 0));
 
     const nextPurId = Math.max(0, ...dbData.purchases.map(p => parseInt(p.id.replace('PO-', '')) || 0)) + 1;
-    const nextTxnId = Math.max(0, ...dbData.transactions.map(t => parseInt(t.id.replace('TXN-', '')) || 0)) + 1;
 
     // Split taxes based on states mapping
     const supplierParty = dbData.parties.find(p => p.name === purSupp);
@@ -979,8 +988,7 @@ export default function Dashboard({ globalSearch = '' }) {
     const sgst = isLocal ? totalTax / 2 : 0;
     const igst = !isLocal ? totalTax : 0;
 
-    const newPur = {
-      id: `PO-${nextPurId}`,
+    const finalPur = {
       supplier: purSupp,
       date: purDate,
       amount: grandTotal,
@@ -988,68 +996,63 @@ export default function Dashboard({ globalSearch = '' }) {
       status: purMode === 'Credit (Due)' ? 'Pending' : 'Paid',
       notes: purNotes,
       items: items,
+      purchaseType: purType,
+      additionalCharges: parseFloat(purAdditionalCharges) || 0,
+      dueDate: purDueDate || '',
       subtotal: Math.round(totalSubtotal * 100) / 100,
       taxAmount: Math.round(totalTax * 100) / 100,
       cgst: Math.round(cgst * 100) / 100,
       sgst: Math.round(sgst * 100) / 100,
-      igst: Math.round(igst * 100) / 100
+      igst: Math.round(igst * 100) / 100,
+      username: dbData.settings.username
     };
 
-    // Double-Entry bookkeeping ledger account resolution
-    const debitAccount = 'Cost of Goods Sold (Expense)';
-    let creditAccount = '';
-    if (purMode === 'Credit (Due)') {
-      creditAccount = 'Accounts Payable (Liability)';
-    } else if (purMode === 'Cash') {
-      creditAccount = 'Cash in Hand (Asset)';
-    } else {
-      creditAccount = 'Bank Account (Asset)';
-    }
-
-    const newTxn = {
-      id: `TXN-${nextTxnId}`,
-      date: purDate,
-      type: 'Purchase',
-      party: purSupp,
-      debit: grandTotal,
-      credit: 0,
-      balance: (dbData.transactions[0]?.balance || 0) - grandTotal,
-      debitAccount,
-      creditAccount
-    };
-
-    // Update product stock levels
-    const updatedProducts = dbData.products.map(p => {
-      const matched = items.find(item => item.name.toLowerCase() === p.name.toLowerCase());
-      if (matched) return { ...p, stock: p.stock + matched.qty };
-      return p;
-    });
-
-    // Update supplier balance if Credit
-    const updatedParties = dbData.parties.map(p => {
-      if (purMode === 'Credit (Due)' && p.name.toLowerCase() === purSupp.toLowerCase()) {
-        return {
-          ...p,
-          balance: p.balance + grandTotal,
-          lastTxn: purDate
-        };
-      }
-      return p;
-    });
-
-    const payload = { ...newPur, username: dbData.settings.username };
-    fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      .then(r => r.json())
-      .then(d => {
-        if (d.status === 'success') {
-          loadDB();
-          setShowPurchaseForm(false);
-          setPurItems([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '' }]);
-          setPurSupp('');
-          setPurNotes('');
-        } else alert('Failed to create purchase');
+    if (editingPurchase) {
+      const pid = editingPurchase.id || editingPurchase._id;
+      fetch(`/api/purchases/${encodeURIComponent(pid)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalPur)
       })
-      .catch(() => alert('Network error'));
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 'success') {
+            loadDB();
+            setShowPurchaseForm(false);
+            setEditingPurchase(null);
+            setPurItems([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }]);
+            setPurSupp('');
+            setPurNotes('');
+            setPurType('Purchase Invoice');
+            setPurAdditionalCharges(0);
+            setPurDueDate('');
+          } else alert('Failed to update purchase');
+        })
+        .catch(() => alert('Network error'));
+    } else {
+      const newPur = {
+        ...finalPur,
+        id: `PO-${nextPurId}`
+      };
+      fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPur)
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 'success') {
+            loadDB();
+            setShowPurchaseForm(false);
+            setPurItems([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }]);
+            setPurSupp('');
+            setPurNotes('');
+            setPurType('Purchase Invoice');
+            setPurAdditionalCharges(0);
+            setPurDueDate('');
+          } else alert('Failed to create purchase');
+        })
+    }
   };
 
   // Delete purchase (soft) via API
@@ -1743,16 +1746,53 @@ export default function Dashboard({ globalSearch = '' }) {
               <h2>Purchase Management</h2>
               <p>Record purchases, track supplier orders, and manage procurement.</p>
             </div>
-            <button className="btn btn--primary" onClick={() => setShowPurchaseForm(true)}><i className="fas fa-plus"></i> New Purchase</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" onClick={() => { fetch(`${API}/api/purchase-report?username=${user.username}`).then(r=>r.json()).then(d=>setPurchaseReportData(d)).catch(()=>{}); }}><i className="fas fa-chart-pie"></i> Report</button>
+              <button className="btn btn--primary" onClick={() => { setEditingPurchase(null); setShowPurchaseForm(true); }}><i className="fas fa-plus"></i> New Purchase</button>
+            </div>
           </div>
+
+          {/* Purchase Report Cards */}
+          {purchaseReportData && (
+            <div style={{ marginBottom: 16 }}>
+              <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 12 }}>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.totalPurchases || 0)}</div><div className="stat__lbl">Total Purchases</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.monthPurchases || 0)}</div><div className="stat__lbl">This Month</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.weekPurchases || 0)}</div><div className="stat__lbl">This Week</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val" style={{ color: 'var(--red)' }}>{fmt(purchaseReportData.pendingDues || 0)}</div><div className="stat__lbl">Pending Dues</div></div>
+              </div>
+              {purchaseReportData.supplierDues && purchaseReportData.supplierDues.length > 0 && (
+                <div className="card" style={{ marginBottom: 12, padding: 16 }}>
+                  <div className="card__head"><span>Supplier Payment Dues</span></div>
+                  <table className="tbl"><thead><tr><th>Supplier</th><th>Outstanding</th><th>Phone</th></tr></thead><tbody>
+                    {purchaseReportData.supplierDues.map((s, i) => <tr key={i}><td style={{ fontWeight: 600 }}>{s.name}</td><td style={{ color: 'var(--red)', fontWeight: 600 }}>{fmt(s.balance)}</td><td style={{ color: 'var(--text-3)' }}>{s.phone}</td></tr>)}
+                  </tbody></table>
+                </div>
+              )}
+              <button className="btn btn--sm" onClick={() => setPurchaseReportData(null)} style={{ marginBottom: 8 }}><i className="fas fa-xmark"></i> Close Report</button>
+            </div>
+          )}
 
           {showPurchaseForm && (
             <div className="card" style={{ marginBottom: '24px' }}>
               <div className="modal__top">
-                <h3>New Purchase Entry</h3>
-                <button className="btn--icon" onClick={() => setShowPurchaseForm(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+                <h3>{editingPurchase ? 'Edit Purchase' : 'New Purchase Entry'}</h3>
+                <button className="btn--icon" onClick={() => { setShowPurchaseForm(false); setEditingPurchase(null); }}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
               </div>
               <form onSubmit={handlePurchaseSubmit}>
+                <div className="form-row" style={{ marginBottom: 12 }}>
+                  <div className="fg"><label>Purchase Type</label>
+                    <select className="fi" value={purType} onChange={(e) => setPurType(e.target.value)}>
+                      <option>Purchase Invoice</option>
+                      <option>Purchase Return</option>
+                      <option>Purchase Order</option>
+                      <option>Debit Note</option>
+                    </select>
+                  </div>
+                  <div className="fg"><label>Due Date</label>
+                    <input type="date" className="fi" value={purDueDate} onChange={(e) => setPurDueDate(e.target.value)} />
+                  </div>
+                </div>
                 <div className="form-row form-row-3">
                   <div className="fg"><label>Supplier Name</label>
                     <input className="fi" placeholder="Supplier name" value={purSupp} onChange={(e) => setPurSupp(e.target.value)} required />
@@ -1777,6 +1817,7 @@ export default function Dashboard({ globalSearch = '' }) {
                       <th style={{ width: '90px' }}>HSN/SAC</th>
                       <th style={{ width: '70px' }}>Qty</th>
                       <th style={{ width: '100px' }}>Rate ({getCurrencySymbol()})</th>
+                      <th style={{ width: '80px' }}>Discount</th>
                       <th style={{ width: '100px' }}>Tax Slab</th>
                       <th style={{ width: '100px' }}>Pricing</th>
                       <th style={{ width: '90px' }}>Tax ({getCurrencySymbol()})</th>
@@ -1839,6 +1880,19 @@ export default function Dashboard({ globalSearch = '' }) {
                             />
                           </td>
                           <td>
+                            <input
+                              type="number"
+                              className="fi"
+                              placeholder="0"
+                              value={item.discount || 0}
+                              onChange={(e) => {
+                                const copy = [...purItems];
+                                copy[idx].discount = parseFloat(e.target.value) || 0;
+                                setPurItems(copy);
+                              }}
+                            />
+                          </td>
+                          <td>
                             <select
                               className="fi"
                               value={item.taxSlab || '18%'}
@@ -1886,12 +1940,15 @@ export default function Dashboard({ globalSearch = '' }) {
                     })}
                   </tbody>
                 </table>
-                <button type="button" className="btn btn--sm" onClick={() => setPurItems([...purItems, { name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '' }])}><i className="fas fa-plus"></i> Add Item</button>
+                <button type="button" className="btn btn--sm" onClick={() => setPurItems([...purItems, { name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }])}><i className="fas fa-plus"></i> Add Item</button>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', marginTop: '24px' }}>
                   <div style={{ flex: 1 }}>
                     <div className="fg"><label>Notes / Remarks</label>
                       <textarea className="fi" placeholder="Purchase notes..." value={purNotes} onChange={(e) => setPurNotes(e.target.value)} />
+                    </div>
+                    <div className="fg"><label>Additional Charges ({getCurrencySymbol()})</label>
+                      <input type="number" className="fi" placeholder="0" value={purAdditionalCharges} onChange={(e) => setPurAdditionalCharges(parseFloat(e.target.value) || 0)} />
                     </div>
                   </div>
                   <div style={{ width: '320px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -1944,6 +2001,11 @@ export default function Dashboard({ globalSearch = '' }) {
               <button className={`btn btn--sm ${useServerPaginationPurchases ? 'btn--primary' : ''}`} onClick={() => setUseServerPaginationPurchases(s => !s)}>{useServerPaginationPurchases ? 'Use Local Data' : 'Use Server Pagination'}</button>
             </div>
           </div>
+          {/* Search / Filter */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input className="fi" placeholder="Search by PO#, supplier..." value={purchaseSearch} onChange={(e) => setPurchaseSearch(e.target.value)} style={{ maxWidth: 320 }} />
+          </div>
+
           {useServerPaginationPurchases ? (
             <PaginatedList type="purchases" />
           ) : (
@@ -1952,6 +2014,7 @@ export default function Dashboard({ globalSearch = '' }) {
               <thead>
                 <tr>
                   <th>PO #</th>
+                  <th>Type</th>
                   <th>Supplier</th>
                   <th>Date</th>
                   <th>Amount</th>
@@ -1960,14 +2023,31 @@ export default function Dashboard({ globalSearch = '' }) {
                 </tr>
               </thead>
               <tbody>
-                {dbData.purchases.map((p, idx) => (
+                {dbData.purchases.filter(p => {
+                  if (!purchaseSearch) return true;
+                  const q = purchaseSearch.toLowerCase();
+                  return (p.id || '').toLowerCase().includes(q) || (p.supplier || '').toLowerCase().includes(q) || (p.purchaseType || '').toLowerCase().includes(q);
+                }).map((p, idx) => (
                   <tr key={idx}>
                     <td style={{ fontWeight: 600, color: 'var(--blue)' }}>{p.id}</td>
+                    <td><span className="badge badge--purple">{p.purchaseType || 'Invoice'}</span></td>
                     <td>{p.supplier}</td>
                     <td style={{ color: 'var(--text-3)' }}>{p.date}</td>
                     <td style={{ fontWeight: 600 }}>{fmt(p.amount)}</td>
                     <td><span className={`badge ${p.status === 'Paid' ? 'badge--green' : 'badge--yellow'}`}>{p.status}</span></td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button className="btn--icon" title="Edit" onClick={() => {
+                        setEditingPurchase(p);
+                        setPurSupp(p.supplier || '');
+                        setPurDate(p.date || new Date().toISOString().substring(0,10));
+                        setPurMode(p.mode || 'Cash');
+                        setPurNotes(p.notes || '');
+                        setPurType(p.purchaseType || 'Purchase Invoice');
+                        setPurAdditionalCharges(p.additionalCharges || 0);
+                        setPurDueDate(p.dueDate || '');
+                        setPurItems(p.items && p.items.length ? p.items.map(it => ({ name: it.name || '', qty: it.qty || 1, rate: it.rate || 0, taxSlab: it.taxSlab || '18%', isTaxInclusive: it.isTaxInclusive || false, hsnSac: it.hsnSac || '', discount: it.discount || 0 })) : [{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }]);
+                        setShowPurchaseForm(true);
+                      }}><i className="fas fa-pen" style={{ color: 'var(--blue)' }}></i></button>
                       <button className="btn--icon" onClick={() => deletePurchase(p.id)}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
                     </td>
                   </tr>
@@ -1999,6 +2079,33 @@ export default function Dashboard({ globalSearch = '' }) {
             </div>
           </div>
 
+          {/* Multi-Location Stock Summary Panel */}
+          {(() => {
+            const godownTotals = {};
+            dbData.products.forEach(p => {
+              const gName = p.godownName || 'Main Warehouse';
+              godownTotals[gName] = (godownTotals[gName] || 0) + (p.stock || 0);
+            });
+            return (
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16, overflowX: 'auto', paddingBottom: 6 }}>
+                {Object.entries(godownTotals).map(([name, qty]) => (
+                  <div key={name} className="card" style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', minWidth: 160, background: 'rgba(255,255,255,0.02)', marginBottom: 0 }}>
+                    <div style={{ background: 'rgba(79,70,229,0.1)', padding: 6, borderRadius: 6, color: '#6366f1', display: 'flex', alignItems: 'center' }}><i className="fas fa-warehouse"></i></div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{qty} items</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Search / Filter */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input className="fi" placeholder="Search by name, SKU, category..." value={inventorySearch} onChange={(e) => setInventorySearch(e.target.value)} style={{ maxWidth: 320 }} />
+          </div>
+
           {productAlerts.lowStock.length > 0 || productAlerts.expirySoon.length > 0 ? (
             <div style={{ marginBottom: 12 }}>
               {productAlerts.lowStock.length > 0 && <div style={{ background: 'rgba(239,68,68,0.06)', padding: '10px 12px', borderRadius: 8, marginBottom: 8 }}><strong>{productAlerts.lowStock.length} Low stock items</strong> — consider reordering. <button className="btn btn--sm" onClick={() => { setCurrentView('inventory'); window.scrollTo({ top: 1000, behavior: 'smooth' }); }}>View</button></div>}
@@ -2025,7 +2132,11 @@ export default function Dashboard({ globalSearch = '' }) {
                   <tr><td colSpan={8} style={{ padding: '8px' }}><PaginatedList type="products" /></td></tr>
                 ) : (
                   <>
-                    {dbData.products.map((p, idx) => (
+                    {dbData.products.filter(p => {
+                      if (!inventorySearch) return true;
+                      const q = inventorySearch.toLowerCase();
+                      return (p.name || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q);
+                    }).map((p, idx) => (
                       <tr key={idx}>
                         <td style={{ fontWeight: 500 }}>
                           {p.name}
@@ -2958,13 +3069,281 @@ export default function Dashboard({ globalSearch = '' }) {
         </div>
       )}
 
+      {/* Stock Adjustment Modal */}
+      {showAdjustmentModal && adjustmentProduct && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000 }}>
+          <div className="modal__top">
+            <h3>Stock Adjustment</h3>
+            <button className="btn--icon" onClick={() => setShowAdjustmentModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <strong>Product:</strong> {adjustmentProduct.name} (Current Stock: {adjustmentProduct.stock})
+          </div>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (viewOnly) return alert('⛔ View-Only Mode');
+            const pid = adjustmentProduct.id || adjustmentProduct._id;
+            try {
+              const res = await fetch(`/api/products/${encodeURIComponent(pid)}/adjust`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user.username, qty: adjustQty, reason: adjustReason })
+              });
+              if (res.ok) {
+                alert('Stock adjusted successfully');
+                loadDB();
+                setShowAdjustmentModal(false);
+              } else alert('Failed to adjust stock');
+            } catch { alert('Network error'); }
+          }}>
+            <div className="fg"><label>Quantity Change (use negative to decrease)</label>
+              <input type="number" className="fi" value={adjustQty} onChange={(e) => setAdjustQty(parseInt(e.target.value) || 0)} required />
+            </div>
+            <div className="fg"><label>Reason</label>
+              <select className="fi" value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)}>
+                <option value="audit">Inventory Audit Correction</option>
+                <option value="damaged">Damaged / Expired Goods</option>
+                <option value="returned">Customer Return</option>
+                <option value="theft">Lost / Theft</option>
+                <option value="other">Other Reason</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <button type="button" className="btn" onClick={() => setShowAdjustmentModal(false)}>Cancel</button>
+              <button type="submit" className="btn btn--primary">Adjust Stock</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Stock Transfer Modal */}
+      {showTransferModal && transferProduct && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000 }}>
+          <div className="modal__top">
+            <h3>Stock Transfer</h3>
+            <button className="btn--icon" onClick={() => setShowTransferModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <strong>Product:</strong> {transferProduct.name} (Source Stock: {transferProduct.stock} at {transferProduct.godownName || 'Main Warehouse'})
+          </div>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (viewOnly) return alert('⛔ View-Only Mode');
+            const pid = transferProduct.id || transferProduct._id;
+            try {
+              const res = await fetch(`/api/products/${encodeURIComponent(pid)}/transfer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user.username, qty: transferQty, fromBranch: transferProduct.godownName || 'Main Warehouse', toBranch: transferTargetBranch })
+              });
+              if (res.ok) {
+                alert('Stock transferred successfully');
+                loadDB();
+                setShowTransferModal(false);
+              } else alert('Failed to transfer stock');
+            } catch { alert('Network error'); }
+          }}>
+            <div className="fg"><label>Transfer Quantity</label>
+              <input type="number" min="1" max={transferProduct.stock} className="fi" value={transferQty} onChange={(e) => setTransferQty(parseInt(e.target.value) || 1)} required />
+            </div>
+            <div className="fg"><label>Target Location / Godown</label>
+              <select className="fi" value={transferTargetBranch} onChange={(e) => setTransferTargetBranch(e.target.value)} required>
+                <option value="">Select location...</option>
+                {['Main Warehouse', 'Godown A', 'Godown B', 'Shop Floor'].filter(l => l !== (transferProduct.godownName || 'Main Warehouse')).map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <button type="button" className="btn" onClick={() => setShowTransferModal(false)}>Cancel</button>
+              <button type="submit" className="btn btn--primary">Transfer Stock</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Stock Audit Modal */}
+      {showAuditModal && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: '750px', width: '90%' }}>
+          <div className="modal__top">
+            <h3>Physical Stock Audit</h3>
+            <button className="btn--icon" onClick={() => setShowAuditModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <div style={{ maxHeight: '60vh', overflowY: 'auto', marginBottom: 12 }}>
+            <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 12 }}>Enter the actual physical count for each item to reconcile discrepancies.</p>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>System Stock</th>
+                  <th style={{ width: 140 }}>Physical Count</th>
+                  <th>Difference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dbData.products.map(p => {
+                  const physical = physicalCounts[p.sku] !== undefined ? physicalCounts[p.sku] : p.stock;
+                  const diff = physical - p.stock;
+                  return (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 500 }}>{p.name} <span style={{ fontSize: 11, color: 'var(--text-3)', display: 'block' }}>SKU: {p.sku}</span></td>
+                      <td>{p.stock}</td>
+                      <td>
+                        <input type="number" className="fi" style={{ padding: '4px 8px', height: 'auto' }} value={physicalCounts[p.sku] ?? ''} placeholder={p.stock} onChange={(e) => {
+                          setPhysicalCounts({ ...physicalCounts, [p.sku]: e.target.value === '' ? undefined : parseInt(e.target.value) || 0 });
+                        }} />
+                      </td>
+                      <td style={{ fontWeight: 600, color: diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'inherit' }}>
+                        {diff > 0 ? `+${diff}` : diff}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+            <button className="btn" onClick={() => setShowAuditModal(false)}>Close</button>
+            <button className="btn btn--primary" onClick={async () => {
+              if (viewOnly) return alert('⛔ View-Only Mode');
+              // Adjust all discrepancies
+              try {
+                let count = 0;
+                for (const p of dbData.products) {
+                  const physical = physicalCounts[p.sku];
+                  if (physical !== undefined && physical !== p.stock) {
+                    const diff = physical - p.stock;
+                    const pid = p.id || p._id;
+                    await fetch(`/api/products/${encodeURIComponent(pid)}/adjust`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ username: user.username, qty: diff, reason: 'Physical stock reconciliation audit' })
+                    });
+                    count++;
+                  }
+                }
+                alert(`Successfully reconciled ${count} product stock levels.`);
+                loadDB();
+                setShowAuditModal(false);
+              } catch { alert('Error during reconciliation'); }
+            }}><i className="fas fa-check-double"></i> Save Reconciliation</button>
+          </div>
+        </div>
+      )}
+
+      {/* Barcode & QR Modal */}
+      {showBarcodeModal && barcodeProduct && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: 360, textAlign: 'center' }}>
+          <div className="modal__top">
+            <h3>Visual Barcode & QR</h3>
+            <button className="btn--icon" onClick={() => setShowBarcodeModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <div style={{ background: '#fff', padding: 24, borderRadius: 8, color: '#000', margin: '12px 0' }}>
+            <h4 style={{ margin: 0, fontWeight: 700 }}>{barcodeProduct.name}</h4>
+            <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>SKU: {barcodeProduct.sku}</p>
+
+            {/* Simulated premium Barcode */}
+            <div style={{ margin: '0 auto 20px', width: 200 }}>
+              <div style={{ display: 'flex', height: 60, background: '#000', padding: '0 4px', justifyContent: 'space-between', alignItems: 'stretch' }}>
+                {[3,1,4,2,1,3,2,4,1,3,2,1,4,2,3,1,2,4].map((w, i) => (
+                  <div key={i} style={{ width: w, background: i % 2 === 0 ? '#000' : '#fff' }} />
+                ))}
+              </div>
+              <div style={{ fontFamily: 'monospace', fontSize: 13, marginTop: 4, letterSpacing: 4 }}>
+                {barcodeProduct.barcode || 'N/A'}
+              </div>
+            </div>
+
+            {/* Simulated premium QR Code */}
+            <div style={{ display: 'inline-block', border: '12px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: '#fff' }}>
+              <div style={{ width: 120, height: 120, background: '#000', position: 'relative', padding: 4 }}>
+                {/* 3 Large Corner Position Detection Patterns */}
+                <div style={{ position: 'absolute', top: 4, left: 4, width: 36, height: 36, border: '8px solid #fff', background: '#000' }}>
+                  <div style={{ position: 'absolute', top: 6, left: 6, width: 8, height: 8, background: '#fff' }} />
+                </div>
+                <div style={{ position: 'absolute', top: 4, right: 4, width: 36, height: 36, border: '8px solid #fff', background: '#000' }}>
+                  <div style={{ position: 'absolute', top: 6, left: 6, width: 8, height: 8, background: '#fff' }} />
+                </div>
+                <div style={{ position: 'absolute', bottom: 4, left: 4, width: 36, height: 36, border: '8px solid #fff', background: '#000' }}>
+                  <div style={{ position: 'absolute', top: 6, left: 6, width: 8, height: 8, background: '#fff' }} />
+                </div>
+                {/* Random QR pixels */}
+                <div style={{ position: 'absolute', top: 44, left: 44, width: 68, height: 68, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 2 }}>
+                  {Array.from({ length: 36 }).map((_, i) => (
+                    <div key={i} style={{ background: i % 3 === 0 || i % 7 === 0 ? '#fff' : 'transparent', borderRadius: 1 }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: '#777', marginTop: 12 }}>Scan to view product info</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button className="btn" onClick={() => setShowBarcodeModal(false)}>Close</button>
+            <button className="btn btn--primary" onClick={() => window.print()}><i className="fas fa-print"></i> Print Label</button>
+          </div>
+        </div>
+      )}
+
+      {/* Categories & Brands Modal */}
+      {showCatBrandModal && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000 }}>
+          <div className="modal__top">
+            <h3>Manage Categories & Brands</h3>
+            <button className="btn--icon" onClick={() => setShowCatBrandModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* Categories */}
+            <div>
+              <h4>Categories</h4>
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8, border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+                {customCats.map(cat => (
+                  <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 13 }}>
+                    <span>{cat}</span>
+                    <button className="btn--icon" onClick={() => setCustomCats(customCats.filter(c => c !== cat))}><i className="fas fa-trash" style={{ color: 'var(--red)', fontSize: 11 }}></i></button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input className="fi" style={{ padding: '4px 8px', height: 'auto' }} placeholder="New category..." value={newCatName} onChange={(e) => setNewCatName(e.target.value)} />
+                <button className="btn btn--sm btn--primary" onClick={() => { if(newCatName.trim()) { setCustomCats([...customCats, newCatName.trim()]); setNewCatName(''); } }}><i className="fas fa-plus"></i></button>
+              </div>
+            </div>
+            {/* Brands */}
+            <div>
+              <h4>Brands</h4>
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8, border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+                {customBrands.map(brand => (
+                  <div key={brand} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 13 }}>
+                    <span>{brand}</span>
+                    <button className="btn--icon" onClick={() => setCustomBrands(customBrands.filter(b => b !== brand))}><i className="fas fa-trash" style={{ color: 'var(--red)', fontSize: 11 }}></i></button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input className="fi" style={{ padding: '4px 8px', height: 'auto' }} placeholder="New brand..." value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} />
+                <button className="btn btn--sm btn--primary" onClick={() => { if(newBrandName.trim()) { setCustomBrands([...customBrands, newBrandName.trim()]); setNewBrandName(''); } }}><i className="fas fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button className="btn" onClick={() => setShowCatBrandModal(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
       <datalist id="products-datalist">
         {dbData.products.map(p => (
           <option key={p.id} value={p.name}>{p.name} (Stock: {p.stock} | Price: {fmt(p.price)})</option>
         ))}
       </datalist>
+      <datalist id="categories-list">
+        {customCats.map(cat => <option key={cat} value={cat} />)}
+      </datalist>
+      <datalist id="brands-list">
+        {customBrands.map(b => <option key={b} value={b} />)}
+      </datalist>
 
-      {(showProductModal || showPartyModal || activeInvoice) && <div className="overlay" style={{ display: 'block', zIndex: 999 }}></div>}
+      {(showProductModal || showPartyModal || activeInvoice || showAdjustmentModal || showTransferModal || showBarcodeModal || showAuditModal || showCatBrandModal) && <div className="overlay" style={{ display: 'block', zIndex: 999 }}></div>}
     </>
   );
 }

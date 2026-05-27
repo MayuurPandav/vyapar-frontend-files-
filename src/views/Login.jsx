@@ -61,6 +61,16 @@ export default function Login() {
       position: 'relative',
       overflow: 'hidden'
     }}>
+      {/* Back button */}
+      <button
+        onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = '/'; }}
+        className="btn btn--sm"
+        style={{ position: 'absolute', top: 18, left: 18, zIndex: 30 }}
+        aria-label="Back"
+      >
+        <i className="fas fa-arrow-left" style={{ marginRight: 8 }}></i>
+        Back
+      </button>
       {/* Background blobs */}
       <div className="blob blob-1" style={{ position: 'absolute', top: '-10%', left: '-10%', width: '500px', height: '500px', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(59, 130, 246, 0.3)', opacity: 0.6, zIndex: 0 }}></div>
       <div className="blob blob-2" style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', filter: 'blur(80px)', background: 'rgba(139, 92, 246, 0.24)', opacity: 0.6, zIndex: 0 }}></div>

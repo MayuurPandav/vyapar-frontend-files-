@@ -50,8 +50,8 @@ export default function Sidebar() {
             </li>
             <li>
               <a className={`sidebar__link ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
-                <i className="fas fa-cog"></i> System Settings
-              </a>
+                  <i className="fas fa-cog"></i> System Settings
+                </a>
             </li>
           </>
         ) : (
@@ -70,6 +70,11 @@ export default function Sidebar() {
             <li>
               <a className={`sidebar__link ${currentView === 'sales' ? 'active' : ''}`} onClick={() => setCurrentView('sales')}>
                 <i className="fas fa-file-invoice-dollar"></i> Sales & Billing
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'invoices' ? 'active' : ''}`} onClick={() => setCurrentView('invoices')}>
+                <i className="fas fa-receipt"></i> Invoices
               </a>
             </li>
             <li>
@@ -100,6 +105,16 @@ export default function Sidebar() {
             <li>
               <a className={`sidebar__link ${currentView === 'reports' ? 'active' : ''}`} onClick={() => setCurrentView('reports')}>
                 <i className="fas fa-chart-column"></i> Reports & AI
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'staff' ? 'active' : ''}`} onClick={() => setCurrentView('staff')}>
+                <i className="fas fa-user-tie"></i> Staff Management
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'subscription' ? 'active' : ''}`} onClick={() => setCurrentView('subscription')}>
+                <i className="fas fa-star"></i> Subscription
               </a>
             </li>
           </>

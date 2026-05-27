@@ -116,15 +116,27 @@ export function AppProvider({ children }) {
   // User Sign-In
   const handleLogin = (loginData) => {
     setToken(loginData.token);
-    setUser(loginData.user);
+    const augmentedUser = { ...(loginData.user || {}), profileComplete: loginData.profileComplete || false, subscription: loginData.subscription || null, onboardingRequired: !!loginData.onboardingRequired };
+    setUser(augmentedUser);
     localStorage.setItem('vyapar_token', loginData.token);
-    localStorage.setItem('vyapar_user', JSON.stringify(loginData.user));
-    if (loginData.user.role === 'super_admin') {
+    localStorage.setItem('vyapar_user', JSON.stringify(augmentedUser));
+    if (augmentedUser.role === 'super_admin') {
       setCurrentView('dashboard');
     } else {
-      localStorage.setItem('vyapar_redirect_profile', 'true');
-      setCurrentView('business');
+      if (augmentedUser.onboardingRequired) {
+        setCurrentView('onboarding');
+      } else {
+        setCurrentView('business');
+      }
     }
+  };
+
+  const updateUser = (updates) => {
+    setUser(prev => {
+      const nu = { ...(prev || {}), ...(updates || {}) };
+      localStorage.setItem('vyapar_user', JSON.stringify(nu));
+      return nu;
+    });
   };
 
   // View as Tenant (Super Admin view-only simulation)
@@ -187,6 +199,7 @@ export function AppProvider({ children }) {
       loadDB,
       saveDB,
       handleLogin,
+      updateUser,
       loginAsTenant,
       backToSuperAdmin,
       handleLogout

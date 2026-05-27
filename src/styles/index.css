@@ -659,6 +659,12 @@ ul {
    vertical-align: middle
 }
 
+/* Staff list specific adjustments */
+.actions { white-space: nowrap; }
+.staff-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.staff-actions .btn { padding: 6px 10px; font-size: 12px; }
+.tbl thead th { text-align: left; }
+
 .tbl tbody tr {
    transition: background .15s var(--ease)
 }

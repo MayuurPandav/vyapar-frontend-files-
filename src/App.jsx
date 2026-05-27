@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Login from './views/Login';
+import Onboarding from './views/Onboarding';
 import Dashboard from './views/Dashboard';
 import SuperAdmin from './views/SuperAdmin';
 
@@ -13,6 +14,11 @@ function AppContent() {
   // 1. If not logged in, render the login view
   if (!token || !user) {
     return <Login />;
+  }
+
+  // 1.5 If user needs onboarding (profile + subscription), show onboarding
+  if (user && user.onboardingRequired) {
+    return <Onboarding />;
   }
 
   const isSuperAdmin = user.role === 'super_admin';

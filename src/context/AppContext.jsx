@@ -20,6 +20,8 @@ export function AppProvider({ children }) {
     purchases: [],
     parties: [],
     transactions: [],
+    expenses: [],
+    offers: [],
     settings: {}
   });
 
@@ -117,10 +119,22 @@ export function AppProvider({ children }) {
   const handleLogin = (loginData) => {
     setToken(loginData.token);
     const augmentedUser = { ...(loginData.user || {}), profileComplete: loginData.profileComplete || false, subscription: loginData.subscription || null, onboardingRequired: !!loginData.onboardingRequired };
+    const normalizeRole_local = (r) => (r || '').toString().toLowerCase().replace(/[-_]/g, '');
+    const isSuper_local = normalizeRole_local(augmentedUser.role) === 'superadmin';
+
+    // Super Admin should not be forced into tenant onboarding/profile flows
+    if (isSuper_local) {
+      augmentedUser.onboardingRequired = false;
+    }
+
     setUser(augmentedUser);
     localStorage.setItem('vyapar_token', loginData.token);
     localStorage.setItem('vyapar_user', JSON.stringify(augmentedUser));
-    if (augmentedUser.role === 'super_admin') {
+
+    const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[-_]/g, '');
+    const isSuper = normalizeRole(augmentedUser.role) === 'superadmin';
+
+    if (isSuper) {
       setCurrentView('dashboard');
     } else {
       if (augmentedUser.onboardingRequired) {
@@ -130,6 +144,11 @@ export function AppProvider({ children }) {
       }
     }
   };
+
+  // Derived role flags (centralized)
+  const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[-_]/g, '');
+  const isSuperAdmin = normalizeRole(user && user.role) === 'superadmin';
+
 
   const updateUser = (updates) => {
     setUser(prev => {
@@ -182,6 +201,7 @@ export function AppProvider({ children }) {
     localStorage.removeItem('vyapar_user');
     localStorage.removeItem('vyapar_view_only');
     localStorage.removeItem('vyapar_redirect_profile');
+    localStorage.removeItem('driverToken');
     setCurrentView('dashboard');
   };
 
@@ -193,16 +213,16 @@ export function AppProvider({ children }) {
       currentView,
       syncStatus,
       dbData,
-      notifications,
-      setCurrentView,
-      setDbData,
       loadDB,
       saveDB,
+      notifications,
+      broadcastBanner,
       handleLogin,
+      handleLogout,
       updateUser,
       loginAsTenant,
       backToSuperAdmin,
-      handleLogout
+      isSuperAdmin
     }}>
       {children}
     </AppContext.Provider>

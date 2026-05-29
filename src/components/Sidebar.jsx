@@ -1,15 +1,42 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Sidebar() {
-  const { user, currentView, setCurrentView, handleLogout } = useApp();
+  const { user, currentView, setCurrentView, handleLogout, isSuperAdmin } = useApp();
+  const containerRef = useRef(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
 
   if (!user) return null;
 
-  const isSuperAdmin = user.role === 'super_admin';
+  // `isSuperAdmin` comes from context (normalized role)
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const container = containerRef.current;
+      if (!container) return setIndicatorStyle(s => ({ ...s, opacity: 0 }));
+      const active = container.querySelector('.sidebar__link.active');
+      if (!active) return setIndicatorStyle(s => ({ ...s, opacity: 0 }));
+      const contRect = container.getBoundingClientRect();
+      const actRect = active.getBoundingClientRect();
+      const top = actRect.top - contRect.top + container.scrollTop;
+      setIndicatorStyle({ top: top + 12, height: actRect.height - 12, opacity: 1 });
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    const obs = (containerRef.current && new MutationObserver(updateIndicator));
+    if (obs && containerRef.current) {
+      obs.observe(containerRef.current, { childList: true, subtree: true, attributes: true });
+    }
+    return () => {
+      window.removeEventListener('resize', updateIndicator);
+      if (obs) obs.disconnect();
+    };
+  }, [currentView]);
 
   return (
     <aside className={`sidebar ${isSuperAdmin ? 'sa-sidebar' : ''}`}>
+      <div className="sidebar__indicator" style={{ top: indicatorStyle.top, height: indicatorStyle.height, opacity: indicatorStyle.opacity }} />
       <div className="sidebar__logo">
         <div className="sidebar__logo-icon" style={{ backgroundColor: isSuperAdmin ? '#f64e60' : '' }}>
           <i className={isSuperAdmin ? 'fas fa-shield-halved' : 'fas fa-cube'}></i>
@@ -19,7 +46,7 @@ export default function Sidebar() {
         </span>
       </div>
 
-      <ul className="sidebar__nav">
+      <ul className="sidebar__nav" ref={containerRef}>
         {isSuperAdmin ? (
           // Super Admin Navigation
           <>
@@ -78,6 +105,16 @@ export default function Sidebar() {
               </a>
             </li>
             <li>
+              <a className={`sidebar__link ${currentView === 'delivery' ? 'active' : ''}`} onClick={() => setCurrentView('delivery')}>
+                <i className="fas fa-truck"></i> Delivery
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'barcodes' ? 'active' : ''}`} onClick={() => setCurrentView('barcodes')}>
+                <i className="fas fa-barcode"></i> Barcodes & QR
+              </a>
+            </li>
+            <li>
               <a className={`sidebar__link ${currentView === 'purchase' ? 'active' : ''}`} onClick={() => setCurrentView('purchase')}>
                 <i className="fas fa-cart-shopping"></i> Purchase
               </a>
@@ -103,8 +140,33 @@ export default function Sidebar() {
               </a>
             </li>
             <li>
+              <a className={`sidebar__link ${currentView === 'gst' ? 'active' : ''}`} onClick={() => setCurrentView('gst')}>
+                <i className="fas fa-file-invoice"></i> GST & Taxes
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'expenses' ? 'active' : ''}`} onClick={() => setCurrentView('expenses')}>
+                <i className="fas fa-money-bill-transfer"></i> Expenses
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'offers' ? 'active' : ''}`} onClick={() => setCurrentView('offers')}>
+                <i className="fas fa-tags"></i> Offers & Discounts
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'notifications' ? 'active' : ''}`} onClick={() => setCurrentView('notifications')}>
+                <i className="fas fa-bell"></i> Notifications
+              </a>
+            </li>
+            <li>
               <a className={`sidebar__link ${currentView === 'reports' ? 'active' : ''}`} onClick={() => setCurrentView('reports')}>
                 <i className="fas fa-chart-column"></i> Reports & AI
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'data' ? 'active' : ''}`} onClick={() => setCurrentView('data')}>
+                <i className="fas fa-database"></i> Data Management
               </a>
             </li>
             <li>

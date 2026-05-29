@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, BarElement, ArcElement } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import PaginatedList from '../components/PaginatedList';
+import AnimatedNumber from '../components/AnimatedNumber';
 import Staff from './Staff';
 import Subscription from './Subscription';
 import Invoices from './Invoices';
@@ -360,6 +361,7 @@ export default function Dashboard({ globalSearch = '' }) {
   // Modals / Form toggles
   const [showProductModal, setShowProductModal] = useState(false);
   const [showPartyModal, setShowPartyModal] = useState(false);
+  const [partyModalTab, setPartyModalTab] = useState('basic');
   const [showSalesForm, setShowSalesForm] = useState(false);
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   const [activeInvoice, setActiveInvoice] = useState(null);
@@ -382,6 +384,8 @@ export default function Dashboard({ globalSearch = '' }) {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [physicalCounts, setPhysicalCounts] = useState({}); // mapping product.sku -> count
 
+  const [txFilter, setTxFilter] = useState('');
+
   const [showCatBrandModal, setShowCatBrandModal] = useState(false);
   const [customCats, setCustomCats] = useState(['Electronics', 'Clothing', 'Grocery', 'Services', 'Hardware', 'Other']);
   const [customBrands, setCustomBrands] = useState(['Samsung', 'Nike', 'Apple', 'Generic']);
@@ -395,7 +399,11 @@ export default function Dashboard({ globalSearch = '' }) {
     lowStockLevel: 5, expiryDate: '', description: '', rackLocation: '', godownName: '', serialNumber: '', batchNumber: ''
   });
   const [editingProduct, setEditingProduct] = useState(null);
-  const [partyForm, setPartyForm] = useState({ name: '', type: 'Customer', phone: '+91 ', balance: 0, notes: '', state: 'Karnataka' });
+  const [partyForm, setPartyForm] = useState({ 
+    name: '', type: 'Customer', phone: '+91 ', balance: 0, notes: '', state: 'Karnataka',
+    email: '', whatsappNumber: '', billingAddress: '', shippingAddress: '', gstin: '', pan: '', 
+    customerGroup: 'Retail', creditLimit: 0, paymentTerms: 'Net 30', openingBalance: 0, bankDetails: ''
+  });
 
   // Sales Form items builder
   const [saleItems, setSaleItems] = useState([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '' }]);
@@ -403,6 +411,8 @@ export default function Dashboard({ globalSearch = '' }) {
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [saleMode, setSaleMode] = useState('Cash');
   const [saleNotes, setSaleNotes] = useState('');
+  const [saleDiscountCode, setSaleDiscountCode] = useState('');
+  const [appliedOffer, setAppliedOffer] = useState(null);
 
   // Purchase Form items builder
   const [purItems, setPurItems] = useState([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '', discount: 0 }]);
@@ -421,6 +431,15 @@ export default function Dashboard({ globalSearch = '' }) {
 
   // Verification & Profile forms
   const [settingsTab, setSettingsTab] = useState('general');
+  const [finTab, setFinTab] = useState('overview');
+  const [gstTab, setGstTab] = useState('gstr1');
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({ date: () => new Date().toISOString().substring(0, 10), category: 'Rent', amount: 0, paymentMode: 'Cash', description: '' });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ partyId: null, partyName: '', type: 'Receive', amount: 0, mode: 'Cash', referenceNo: '', date: () => new Date().toISOString().substring(0, 10) });
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [offerForm, setOfferForm] = useState({ code: '', type: 'Percentage', value: 0, startDate: '', endDate: '', minBillAmount: 0, applicableCategory: '', applicableProduct: '', usageLimit: 0, isActive: true });
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchAddress, setNewBranchAddress] = useState('');
 
@@ -492,6 +511,62 @@ export default function Dashboard({ globalSearch = '' }) {
   };
 
   useEffect(() => { loadProductAlerts(); }, [user, dbData.products.length]);
+
+  // --- Barcode Scanner Global Listener ---
+  useEffect(() => {
+    let barcodeBuffer = '';
+    let barcodeTimeout;
+
+    const handleKeyDown = (e) => {
+      // We rely on the 50ms timeout to distinguish humans from scanners.
+      if (e.key === 'Enter' && barcodeBuffer.length > 3) {
+        const code = barcodeBuffer;
+        barcodeBuffer = '';
+        clearTimeout(barcodeTimeout);
+        
+        const prod = dbData.products.find(p => p.barcode === code || String(p.sku) === code);
+        if (prod) {
+          if (showSalesForm) {
+            // Add to sale cart
+            setSaleItems(prev => {
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last && !last.name.trim()) {
+                 copy.pop(); // remove empty row
+              }
+              // check if already in cart, then increment qty
+              const existingIdx = copy.findIndex(item => item.name === prod.name);
+              if (existingIdx >= 0) {
+                 copy[existingIdx].qty = Number(copy[existingIdx].qty) + 1;
+              } else {
+                 copy.push({ name: prod.name, qty: 1, rate: prod.sellingPrice || prod.purchasePrice || 0, taxSlab: prod.taxRate ? `${prod.taxRate}%` : '18%', isTaxInclusive: false, hsnSac: '' });
+              }
+              return copy;
+            });
+            // minimal visual feedback or just silently add
+          } else {
+            // Maybe search it in inventory
+            if (currentView !== 'inventory') {
+              setCurrentView('inventory');
+            }
+          }
+        }
+        return;
+      }
+
+      if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => {
+          barcodeBuffer = '';
+        }, 50);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dbData.products, showSalesForm, currentView]);
+
   const [profileForm, setProfileForm] = useState({
     bizName: '',
     email: '',
@@ -804,12 +879,123 @@ export default function Dashboard({ globalSearch = '' }) {
     if (viewOnly) return alert('⛔ View-Only Mode');
     const newId = Math.max(0, ...dbData.parties.map(p => p.id)) + 1;
     const todayStr = new Date().toISOString().substring(0, 10);
-    const balanceNum = parseFloat(partyForm.balance) || 0;
-    const payload = { ...partyForm, id: newId, balance: balanceNum, lastTxn: todayStr, state: partyForm.state || 'Karnataka', username: dbData.settings.username };
+    const balanceNum = parseFloat(partyForm.openingBalance) || 0;
+    const payload = { 
+      ...partyForm, 
+      id: newId, 
+      balance: balanceNum, 
+      openingBalance: balanceNum,
+      lastTxn: todayStr, 
+      state: partyForm.state || 'Karnataka', 
+      username: dbData.settings.username 
+    };
     fetch('/api/parties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(r => r.json())
-      .then(d => { if (d.status === 'success') { loadDB(); setShowPartyModal(false); setPartyForm({ name: '', type: 'Customer', phone: '+91 ', balance: 0, notes: '', state: 'Karnataka' }); } else alert('Failed to add party'); })
+      .then(d => { 
+        if (d.status === 'success') { 
+          loadDB(); 
+          setShowPartyModal(false); 
+          setPartyForm({ 
+            name: '', type: 'Customer', phone: '+91 ', balance: 0, notes: '', state: 'Karnataka',
+            email: '', whatsappNumber: '', billingAddress: '', shippingAddress: '', gstin: '', pan: '', 
+            customerGroup: 'Retail', creditLimit: 0, paymentTerms: 'Net 30', openingBalance: 0, bankDetails: ''
+          }); 
+        } else alert('Failed to add party'); 
+      })
       .catch(() => alert('Network error'));
+  };
+
+  const handleExpenseSubmit = (e) => {
+    e.preventDefault();
+    if (viewOnly) return alert('⛔ View-Only Mode');
+    const newId = Math.max(0, ...(dbData.expenses || []).map(exp => exp.id)) + 1;
+    const payload = { ...expenseForm, id: newId };
+    
+    // Quick local append since we save full DB 
+    const updated = { 
+      ...dbData, 
+      expenses: [...(dbData.expenses || []), payload] 
+    };
+    saveDB(updated);
+    setShowExpenseModal(false);
+    setExpenseForm({ date: new Date().toISOString().substring(0, 10), category: 'Rent', amount: 0, paymentMode: 'Cash', description: '' });
+  };
+
+  const handlePaymentSubmit = (e) => {
+    e.preventDefault();
+    if (viewOnly) return alert('⛔ View-Only Mode');
+    const pAmt = parseFloat(paymentForm.amount) || 0;
+    if (pAmt <= 0) return alert('Amount must be greater than zero.');
+    
+    // Update Party Balance
+    const pIdx = dbData.parties.findIndex(p => p.id === paymentForm.partyId);
+    if (pIdx === -1) return alert('Party not found');
+    
+    let updatedParties = [...dbData.parties];
+    let newBalance = parseFloat(updatedParties[pIdx].balance) || 0;
+    
+    // For customers (receivable > 0), receiving payment decreases balance.
+    // For suppliers (payable < 0), making payment increases balance (towards 0).
+    if (paymentForm.type === 'Receive') {
+      newBalance -= pAmt;
+    } else {
+      newBalance += pAmt;
+    }
+    updatedParties[pIdx] = { ...updatedParties[pIdx], balance: newBalance, lastTxn: paymentForm.date };
+    
+    // Create Transaction Entry
+    const newTxnId = 'TXN-' + Date.now();
+    const isReceive = paymentForm.type === 'Receive';
+    const txn = {
+      id: newTxnId,
+      date: paymentForm.date,
+      type: 'Payment ' + paymentForm.type,
+      party: paymentForm.partyName,
+      debitAccount: isReceive ? 'Cash Account' : 'Accounts Payable (Liability)',
+      creditAccount: isReceive ? 'Accounts Receivable (Asset)' : 'Cash Account',
+      debit: isReceive ? pAmt : 0,
+      credit: isReceive ? 0 : pAmt,
+      balance: newBalance
+    };
+    
+    const updated = {
+      ...dbData,
+      parties: updatedParties,
+      transactions: [...dbData.transactions, txn]
+    };
+    saveDB(updated);
+    setShowPaymentModal(false);
+  };
+
+  const handleOfferSubmit = (e) => {
+    e.preventDefault();
+    if (viewOnly) return alert('⛔ View-Only Mode');
+    let updatedOffers = [...(dbData.offers || [])];
+    
+    if (editingOffer) {
+      const idx = updatedOffers.findIndex(o => o.id === editingOffer.id);
+      if (idx !== -1) updatedOffers[idx] = { ...editingOffer, ...offerForm };
+    } else {
+      const newId = Math.max(0, ...updatedOffers.map(o => o.id)) + 1;
+      updatedOffers.push({ ...offerForm, id: newId, usedCount: 0 });
+    }
+    
+    saveDB({ ...dbData, offers: updatedOffers });
+    setShowOfferModal(false);
+    setEditingOffer(null);
+    setOfferForm({ code: '', type: 'Percentage', value: 0, startDate: '', endDate: '', minBillAmount: 0, applicableCategory: '', applicableProduct: '', usageLimit: 0, isActive: true });
+  };
+
+  const handleOfferToggle = (id) => {
+    if (viewOnly) return;
+    let updatedOffers = (dbData.offers || []).map(o => o.id === id ? { ...o, isActive: !o.isActive } : o);
+    saveDB({ ...dbData, offers: updatedOffers });
+  };
+
+  const deleteOffer = (id) => {
+    if (viewOnly || !window.confirm('Delete this offer?')) return;
+    let updatedOffers = (dbData.offers || []).filter(o => o.id !== id);
+    saveDB({ ...dbData, offers: updatedOffers });
   };
 
   // Delete Handlers
@@ -826,6 +1012,21 @@ export default function Dashboard({ globalSearch = '' }) {
   };
 
   // Sales Submit Handler
+  const handleApplyOffer = () => {
+    if (!saleDiscountCode.trim()) { setAppliedOffer(null); return; }
+    const offer = (dbData.offers || []).find(o => o.code === saleDiscountCode.toUpperCase() && o.isActive);
+    if (!offer) return alert('Invalid or inactive coupon code.');
+    
+    const today = new Date().toISOString().substring(0, 10);
+    if (offer.startDate && today < offer.startDate) return alert('Offer not valid yet.');
+    if (offer.endDate && today > offer.endDate) return alert('Offer has expired.');
+    if (offer.usageLimit > 0 && offer.usedCount >= offer.usageLimit) return alert('Offer usage limit reached.');
+    
+    // We validate min bill amount at checkout, but we can store it now
+    setAppliedOffer(offer);
+    alert(`Offer ${offer.code} applied successfully!`);
+  };
+
   const handleSalesSubmit = (e) => {
     e.preventDefault();
     if (viewOnly) return alert('⛔ View-Only Mode');
@@ -854,7 +1055,19 @@ export default function Dashboard({ globalSearch = '' }) {
 
     if (items.length === 0) return alert('Please add at least one valid product.');
 
-    const grandTotal = Math.round(totalAmount);
+    let discountAmount = 0;
+    if (appliedOffer) {
+      if (totalAmount >= (appliedOffer.minBillAmount || 0)) {
+        if (appliedOffer.type === 'Percentage') {
+          discountAmount = (totalAmount * appliedOffer.value) / 100;
+        } else if (appliedOffer.type === 'Flat Discount') {
+          discountAmount = appliedOffer.value;
+        }
+        // Additional advanced logic for BuyXGetY or Bundles would go here
+      }
+    }
+
+    const grandTotal = Math.round(totalAmount - discountAmount);
 
     // AI Limit warning simulation
     if (saleMode === 'Credit (Due)') {
@@ -887,7 +1100,9 @@ export default function Dashboard({ globalSearch = '' }) {
       taxAmount: Math.round(totalTax * 100) / 100,
       cgst: Math.round(cgst * 100) / 100,
       sgst: Math.round(sgst * 100) / 100,
-      igst: Math.round(igst * 100) / 100
+      igst: Math.round(igst * 100) / 100,
+      discountCode: appliedOffer ? appliedOffer.code : '',
+      discountAmount: discountAmount
     };
 
     // Double-Entry bookkeeping ledger account resolution
@@ -937,11 +1152,29 @@ export default function Dashboard({ globalSearch = '' }) {
       .then(r => r.json())
       .then(d => {
         if (d.status === 'success') {
+          const updated = {
+            ...dbData,
+            products: updatedProducts,
+            parties: updatedParties,
+            sales: [...dbData.sales, payload],
+            transactions: [...dbData.transactions, newTxn]
+          };
+          
+          // Increment offer usage count if one was applied
+          if (appliedOffer) {
+            updated.offers = (dbData.offers || []).map(o => o.id === appliedOffer.id ? { ...o, usedCount: o.usedCount + 1 } : o);
+          }
+          saveDB(updated);
+
           loadDB();
           setShowSalesForm(false);
           setSaleItems([{ name: '', qty: 1, rate: 0, taxSlab: '18%', isTaxInclusive: false, hsnSac: '' }]);
           setSaleCust('');
+          setSaleDate(() => new Date().toISOString().substring(0, 10));
+          setSaleMode('Cash');
           setSaleNotes('');
+          setSaleDiscountCode('');
+          setAppliedOffer(null);
         } else alert('Failed to create sale');
       })
       .catch(() => alert('Network error'));
@@ -1320,7 +1553,7 @@ export default function Dashboard({ globalSearch = '' }) {
                 <div className="stat__icon stat__icon--g"><i className="fas fa-wallet"></i></div>
                 <span className="stat__trend up"><i className="fas fa-arrow-up"></i> 12.5%</span>
               </div>
-              <div className="stat__val">{fmt(totalSales)}</div>
+              <div className="stat__val"><AnimatedNumber value={totalSales} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Total Sales</div>
             </div>
             <div className="card card--lift">
@@ -1328,7 +1561,7 @@ export default function Dashboard({ globalSearch = '' }) {
                 <div className="stat__icon stat__icon--r"><i className="fas fa-cart-shopping"></i></div>
                 <span className="stat__trend down"><i className="fas fa-arrow-down"></i> 4.2%</span>
               </div>
-              <div className="stat__val">{fmt(totalPurchases)}</div>
+              <div className="stat__val"><AnimatedNumber value={totalPurchases} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Total Purchases</div>
             </div>
             <div className="card card--lift">
@@ -1336,28 +1569,28 @@ export default function Dashboard({ globalSearch = '' }) {
                 <div className="stat__icon stat__icon--y"><i className="fas fa-chart-line"></i></div>
                 <span className="stat__trend up"><i className="fas fa-arrow-up"></i> 8.2%</span>
               </div>
-              <div className="stat__val" style={{ color: profit >= 0 ? '#10b981' : '#ef4444' }}>{fmt(profit)}</div>
+              <div className="stat__val" style={{ color: profit >= 0 ? '#10b981' : '#ef4444' }}><AnimatedNumber value={profit} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Profit & Loss</div>
             </div>
             <div className="card card--lift">
               <div className="stat__top">
                 <div className="stat__icon stat__icon--b"><i className="fas fa-hand-holding-dollar"></i></div>
               </div>
-              <div className="stat__val">{fmt(cashInHand)}</div>
+              <div className="stat__val"><AnimatedNumber value={cashInHand} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Cash in Hand</div>
             </div>
             <div className="card card--lift">
               <div className="stat__top">
                 <div className="stat__icon stat__icon--o"><i className="fas fa-file-invoice"></i></div>
               </div>
-              <div className="stat__val">{fmt(totalPendingReceivables)}</div>
+              <div className="stat__val"><AnimatedNumber value={totalPendingReceivables} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Pending Receivables</div>
             </div>
             <div className="card card--lift">
               <div className="stat__top">
                 <div className="stat__icon stat__icon--p"><i className="fas fa-hand-paper"></i></div>
               </div>
-              <div className="stat__val">{fmt(totalOutstandingPayables)}</div>
+              <div className="stat__val"><AnimatedNumber value={totalOutstandingPayables} duration={1200} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Outstanding Dues (Payables)</div>
             </div>
           </div>
@@ -1365,35 +1598,35 @@ export default function Dashboard({ globalSearch = '' }) {
           <div className="stats-grid" style={{ marginTop: '12px' }}>
             <div className="card card--lift">
               <div className="stat__lbl">Sales Today</div>
-              <div className="stat__val">{fmt(salesToday)}</div>
+              <div className="stat__val"><AnimatedNumber value={salesToday} duration={900} formatter={v => fmt(Math.round(v))} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Sales This Week</div>
-              <div className="stat__val">{fmt(salesWeek)}</div>
+              <div className="stat__val"><AnimatedNumber value={salesWeek} duration={900} formatter={v => fmt(Math.round(v))} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Sales This Month</div>
-              <div className="stat__val">{fmt(salesMonth)}</div>
+              <div className="stat__val"><AnimatedNumber value={salesMonth} duration={900} formatter={v => fmt(Math.round(v))} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Expenses Today</div>
-              <div className="stat__val">{fmt(expensesToday)}</div>
+              <div className="stat__val"><AnimatedNumber value={expensesToday} duration={900} formatter={v => fmt(Math.round(v))} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Expenses This Month</div>
-              <div className="stat__val">{fmt(expensesMonth)}</div>
+              <div className="stat__val"><AnimatedNumber value={expensesMonth} duration={900} formatter={v => fmt(Math.round(v))} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Customers</div>
-              <div className="stat__val">{totalCustomers}</div>
+              <div className="stat__val"><AnimatedNumber value={totalCustomers} duration={800} formatter={v => Math.round(v)} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Suppliers</div>
-              <div className="stat__val">{totalSuppliers}</div>
+              <div className="stat__val"><AnimatedNumber value={totalSuppliers} duration={800} formatter={v => Math.round(v)} /></div>
             </div>
             <div className="card card--lift">
               <div className="stat__lbl">Out of Stock</div>
-              <div className="stat__val">{outOfStockCount}</div>
+              <div className="stat__val"><AnimatedNumber value={outOfStockCount} duration={800} formatter={v => Math.round(v)} /></div>
             </div>
           </div>
 
@@ -1407,7 +1640,7 @@ export default function Dashboard({ globalSearch = '' }) {
                     <button className={`btn btn--sm ${tsPeriod==='monthly' ? 'btn--primary' : ''}`} onClick={() => setTsPeriod('monthly')}>Monthly</button>
                   </div>
               </div>
-                <div style={{ height: '240px' }}><Line data={salesChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} /></div>
+                <div style={{ height: '240px' }}><Line data={salesChartData} options={{ responsive: true, maintainAspectRatio: false, animation: { duration: 1200, easing: 'easeOutCubic' }, plugins: { legend: { display: false } } }} /></div>
             </div>
             <div className="card">
               <div className="card__head"><span>Low Stock Alerts</span></div>
@@ -1417,7 +1650,7 @@ export default function Dashboard({ globalSearch = '' }) {
                     <div className="alert-row" key={idx}>
                       <div className="alert-row__img" style={{ display: 'grid', placeItems: 'center', fontSize: '16px', color: 'var(--text-3)' }}><i className="fas fa-box"></i></div>
                       <div style={{ flex: 1 }}><div className="alert-row__name">{p.name}</div><div className="alert-row__meta">SKU: {p.sku}</div></div>
-                      <span className="badge badge--red">{p.stock} left</span>
+                      <span className="badge badge--red"><AnimatedNumber value={Number(p.stock)||0} duration={600} formatter={v => Math.round(v)} /> left</span>
                     </div>
                   ))
                 ) : (
@@ -1430,15 +1663,15 @@ export default function Dashboard({ globalSearch = '' }) {
           <div className="two-col" style={{ marginTop: '18px' }}>
             <div className="card chart-area">
               <div className="card__head"><span>Top Selling Products</span></div>
-              <div style={{ height: '240px' }}><Bar data={topSellingChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} /></div>
+              <div style={{ height: '240px' }}><Bar data={topSellingChartData} options={{ responsive: true, maintainAspectRatio: false, animation: { duration: 1200, easing: 'easeOutCubic' }, plugins: { legend: { display: false } } }} /></div>
             </div>
             <div className="card">
               <div className="card__head"><span>Delivery Summary</span></div>
               <div style={{ padding: '12px' }}>
                 <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                  <li style={{ padding: '8px 0' }}>Pending: <strong>{deliveryStatusSummary.pending}</strong></li>
-                  <li style={{ padding: '8px 0' }}>Completed: <strong>{deliveryStatusSummary.completed}</strong></li>
-                  <li style={{ padding: '8px 0' }}>Cancelled: <strong>{deliveryStatusSummary.cancelled}</strong></li>
+                  <li style={{ padding: '8px 0' }}>Pending: <strong><AnimatedNumber value={Number(deliveryStatusSummary.pending)||0} duration={600} formatter={v=>Math.round(v)} /></strong></li>
+                  <li style={{ padding: '8px 0' }}>Completed: <strong><AnimatedNumber value={Number(deliveryStatusSummary.completed)||0} duration={600} formatter={v=>Math.round(v)} /></strong></li>
+                  <li style={{ padding: '8px 0' }}>Cancelled: <strong><AnimatedNumber value={Number(deliveryStatusSummary.cancelled)||0} duration={600} formatter={v=>Math.round(v)} /></strong></li>
                 </ul>
               </div>
             </div>
@@ -1447,6 +1680,9 @@ export default function Dashboard({ globalSearch = '' }) {
           <div className="card" style={{ marginTop: '20px' }}>
             <div className="card__head">
               <span>Recent Transactions</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '12px 16px' }}>
+              <input className="fi" placeholder="Filter transactions..." value={txFilter} onChange={e=>setTxFilter(e.target.value)} style={{ width: 240 }} />
             </div>
             <table className="tbl">
               <thead>
@@ -1459,12 +1695,12 @@ export default function Dashboard({ globalSearch = '' }) {
                 </tr>
               </thead>
               <tbody>
-                {dbData.transactions.slice(0, 5).map((t, idx) => (
+                {dbData.transactions.filter(tt => !txFilter.trim() || JSON.stringify(tt).toLowerCase().includes(txFilter.toLowerCase())).slice(0, 5).map((t, idx) => (
                   <tr key={idx}>
                     <td style={{ color: 'var(--text-3)' }}>{t.date}</td>
                     <td><span className={`badge ${t.type === 'Sale' ? 'badge--green' : 'badge--blue'}`}>{t.type}</span></td>
                     <td>{t.party}</td>
-                    <td style={{ fontWeight: 600 }}>{fmt(t.credit || t.debit)}</td>
+                    <td style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.credit || t.debit) || 0} duration={700} formatter={v => fmt(Math.round(v))} /></td>
                     <td><span className={`badge ${t.credit ? 'badge--green' : 'badge--red'}`}>{t.credit ? 'Credit' : 'Debit'}</span></td>
                   </tr>
                 ))}
@@ -1480,7 +1716,7 @@ export default function Dashboard({ globalSearch = '' }) {
                   {topCustomers.slice(0, 5).map((c, i) => (
                     <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--muted)' }}>
                       <div style={{ fontWeight: 600 }}>{c.name}</div>
-                      <div style={{ color: 'var(--text-2)' }}>{fmt(c.total)}</div>
+                      <div style={{ color: 'var(--text-2)' }}><AnimatedNumber value={Number(c.total) || 0} duration={700} formatter={v => fmt(Math.round(v))} /></div>
                     </li>
                   ))}
                 </ul>
@@ -1627,8 +1863,8 @@ export default function Dashboard({ globalSearch = '' }) {
                               <option value="inclusive">Inclusive</option>
                             </select>
                           </td>
-                          <td style={{ fontWeight: 500 }}>{fmt(lineMath.taxAmount)}</td>
-                          <td style={{ fontWeight: 600 }}>{fmt(lineMath.total)}</td>
+                          <td style={{ fontWeight: 500 }}><AnimatedNumber value={Number(lineMath.taxAmount) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></td>
+                          <td style={{ fontWeight: 600 }}><AnimatedNumber value={Number(lineMath.total) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></td>
                           <td>
                             <button
                               type="button"
@@ -1650,6 +1886,17 @@ export default function Dashboard({ globalSearch = '' }) {
                     <div className="fg"><label>Notes / Remarks</label>
                       <textarea className="fi" placeholder="Invoice notes..." value={saleNotes} onChange={(e) => setSaleNotes(e.target.value)} />
                     </div>
+                    
+                    <div className="fg" style={{ marginTop: '16px' }}><label>Apply Offer Code</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input className="fi" placeholder="Enter code" value={saleDiscountCode} onChange={(e) => setSaleDiscountCode(e.target.value)} style={{ maxWidth: '200px' }} />
+                        <button type="button" className="btn" onClick={handleApplyOffer}>Apply</button>
+                        {appliedOffer && (
+                          <button type="button" className="btn" style={{ color: 'var(--red)' }} onClick={() => { setAppliedOffer(null); setSaleDiscountCode(''); }}>Remove</button>
+                        )}
+                      </div>
+                      {appliedOffer && <div style={{ fontSize: '12px', color: 'var(--accent)', marginTop: '4px' }}><i className="fas fa-check-circle"></i> Offer {appliedOffer.code} applied!</div>}
+                    </div>
                   </div>
                   <div style={{ width: '320px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     {(() => {
@@ -1658,32 +1905,54 @@ export default function Dashboard({ globalSearch = '' }) {
                         <>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                             <span>Subtotal:</span>
-                            <span style={{ fontWeight: 600 }}>{fmt(t.subtotal)}</span>
+                            <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.subtotal) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                           </div>
                           {t.isLocal ? (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                                 <span>CGST:</span>
-                                <span style={{ fontWeight: 600 }}>{fmt(t.cgst)}</span>
+                                <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.cgst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                                 <span>SGST:</span>
-                                <span style={{ fontWeight: 600 }}>{fmt(t.sgst)}</span>
+                                <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.sgst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                               </div>
                             </>
                           ) : (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                               <span>IGST:</span>
-                              <span style={{ fontWeight: 600 }}>{fmt(t.igst)}</span>
+                              <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.igst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                             </div>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '6px' }}>
                             <span>Total Tax:</span>
-                            <span style={{ fontWeight: 600 }}>{fmt(t.taxAmount)}</span>
+                            <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.taxAmount) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                           </div>
+                          
+                          {appliedOffer && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--primary)', marginBottom: '6px' }}>
+                              <span>Discount applied:</span>
+                              <span style={{ fontWeight: 600 }}>- {appliedOffer.type === 'Percentage' ? `${appliedOffer.value}%` : fmt(appliedOffer.value)}</span>
+                            </div>
+                          )}
+
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 800, color: 'var(--accent)', marginTop: '8px' }}>
                             <span>Grand Total:</span>
-                            <span>{fmt(t.total)}</span>
+                            <span>
+                              {(() => {
+                                let dt = t.total;
+                                if (appliedOffer) {
+                                  if (dt >= (appliedOffer.minBillAmount || 0)) {
+                                    if (appliedOffer.type === 'Percentage') {
+                                      dt -= (dt * appliedOffer.value) / 100;
+                                    } else if (appliedOffer.type === 'Flat Discount') {
+                                      dt -= appliedOffer.value;
+                                    }
+                                  }
+                                }
+                                return fmt(dt);
+                              })()}
+                            </span>
                           </div>
                         </>
                       );
@@ -1724,7 +1993,7 @@ export default function Dashboard({ globalSearch = '' }) {
                       <td style={{ fontWeight: 600, color: 'var(--blue)', cursor: 'pointer' }} onClick={() => setActiveInvoice(s)}>{s.id}</td>
                       <td>{s.customer}</td>
                       <td style={{ color: 'var(--text-3)' }}>{s.date}</td>
-                      <td style={{ fontWeight: 600 }}>{fmt(s.amount)}</td>
+                      <td style={{ fontWeight: 600 }}><AnimatedNumber value={Number(s.amount) || 0} duration={700} formatter={v => fmt(Math.round(v))} /></td>
                       <td><span className={`badge ${s.status === 'Paid' ? 'badge--green' : 'badge--yellow'}`}>{s.status}</span></td>
                       <td style={{ textAlign: 'right' }}>
                         <button className="btn--icon" onClick={() => deleteSale(s.id)}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
@@ -1756,16 +2025,16 @@ export default function Dashboard({ globalSearch = '' }) {
           {purchaseReportData && (
             <div style={{ marginBottom: 16 }}>
               <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 12 }}>
-                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.totalPurchases || 0)}</div><div className="stat__lbl">Total Purchases</div></div>
-                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.monthPurchases || 0)}</div><div className="stat__lbl">This Month</div></div>
-                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val">{fmt(purchaseReportData.weekPurchases || 0)}</div><div className="stat__lbl">This Week</div></div>
-                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val" style={{ color: 'var(--red)' }}>{fmt(purchaseReportData.pendingDues || 0)}</div><div className="stat__lbl">Pending Dues</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val"><AnimatedNumber value={Number(purchaseReportData.totalPurchases||0)} duration={900} formatter={v => fmt(Math.round(v))} /></div><div className="stat__lbl">Total Purchases</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val"><AnimatedNumber value={Number(purchaseReportData.monthPurchases||0)} duration={900} formatter={v => fmt(Math.round(v))} /></div><div className="stat__lbl">This Month</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val"><AnimatedNumber value={Number(purchaseReportData.weekPurchases||0)} duration={900} formatter={v => fmt(Math.round(v))} /></div><div className="stat__lbl">This Week</div></div>
+                <div className="card card--lift" style={{ padding: 16 }}><div className="stat__val" style={{ color: 'var(--red)' }}><AnimatedNumber value={Number(purchaseReportData.pendingDues||0)} duration={900} formatter={v => fmt(Math.round(v))} /></div><div className="stat__lbl">Pending Dues</div></div>
               </div>
               {purchaseReportData.supplierDues && purchaseReportData.supplierDues.length > 0 && (
                 <div className="card" style={{ marginBottom: 12, padding: 16 }}>
                   <div className="card__head"><span>Supplier Payment Dues</span></div>
                   <table className="tbl"><thead><tr><th>Supplier</th><th>Outstanding</th><th>Phone</th></tr></thead><tbody>
-                    {purchaseReportData.supplierDues.map((s, i) => <tr key={i}><td style={{ fontWeight: 600 }}>{s.name}</td><td style={{ color: 'var(--red)', fontWeight: 600 }}>{fmt(s.balance)}</td><td style={{ color: 'var(--text-3)' }}>{s.phone}</td></tr>)}
+                    {purchaseReportData.supplierDues.map((s, i) => <tr key={i}><td style={{ fontWeight: 600 }}>{s.name}</td><td style={{ color: 'var(--red)', fontWeight: 600 }}><AnimatedNumber value={Number(s.balance)||0} duration={700} formatter={v => fmt(Math.round(v))} /></td><td style={{ color: 'var(--text-3)' }}>{s.phone}</td></tr>)}
                   </tbody></table>
                 </div>
               )}
@@ -1924,8 +2193,8 @@ export default function Dashboard({ globalSearch = '' }) {
                               <option value="inclusive">Inclusive</option>
                             </select>
                           </td>
-                          <td style={{ fontWeight: 500 }}>{fmt(lineMath.taxAmount)}</td>
-                          <td style={{ fontWeight: 600 }}>{fmt(lineMath.total)}</td>
+                          <td style={{ fontWeight: 500 }}><AnimatedNumber value={Number(lineMath.taxAmount) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></td>
+                          <td style={{ fontWeight: 600 }}><AnimatedNumber value={Number(lineMath.total) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></td>
                           <td>
                             <button
                               type="button"
@@ -1958,28 +2227,28 @@ export default function Dashboard({ globalSearch = '' }) {
                         <>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                             <span>Subtotal:</span>
-                            <span style={{ fontWeight: 600 }}>{fmt(t.subtotal)}</span>
+                            <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.subtotal) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                           </div>
                           {t.isLocal ? (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                                 <span>CGST:</span>
-                                <span style={{ fontWeight: 600 }}>{fmt(t.cgst)}</span>
+                                <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.cgst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                                 <span>SGST:</span>
-                                <span style={{ fontWeight: 600 }}>{fmt(t.sgst)}</span>
+                                <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.sgst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                               </div>
                             </>
                           ) : (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                               <span>IGST:</span>
-                              <span style={{ fontWeight: 600 }}>{fmt(t.igst)}</span>
+                              <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.igst) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                             </div>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '6px' }}>
                             <span>Total Tax:</span>
-                            <span style={{ fontWeight: 600 }}>{fmt(t.taxAmount)}</span>
+                            <span style={{ fontWeight: 600 }}><AnimatedNumber value={Number(t.taxAmount) || 0} duration={600} formatter={v => fmt(Math.round(v))} /></span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 800, color: 'var(--accent)', marginTop: '8px' }}>
                             <span>Grand Total:</span>
@@ -2065,7 +2334,7 @@ export default function Dashboard({ globalSearch = '' }) {
           <div className="sec-header sec-header--row">
             <div>
               <h2>Inventory Catalog</h2>
-              <p>Total Stock Value: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{fmt(dbData.products.reduce((acc, p) => acc + (p.stock * p.price), 0))}</span></p>
+              <p>Total Stock Value: <span style={{ color: 'var(--accent)', fontWeight: 700 }}><AnimatedNumber value={Number(dbData.products.reduce((acc, p) => acc + (p.stock * p.price), 0))||0} duration={1000} formatter={v => fmt(Math.round(v))} /></span></p>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="btn btn--primary" onClick={() => { setEditingProduct(null); resetProdForm(); setShowProductModal(true); }}><i className="fas fa-plus"></i> Add Product</button>
@@ -2144,7 +2413,7 @@ export default function Dashboard({ globalSearch = '' }) {
                         </td>
                         <td style={{ color: 'var(--text-3)' }}>{p.sku + (p.hsnSac ? ' (HSN: ' + p.hsnSac + ')' : '')}</td>
                         <td><span className="badge badge--blue">{p.category}{p.subCategory ? ' / ' + p.subCategory : ''}</span></td>
-                        <td style={{ fontWeight: 600 }}>{p.stock} <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>{p.unit || 'pcs'}</span></td>
+                        <td style={{ fontWeight: 600 }}><AnimatedNumber value={Number(p.stock)||0} duration={700} formatter={v => Math.round(v)} /> <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>{p.unit || 'pcs'}</span></td>
                         <td>{fmt(p.purchasePrice || 0)} / {fmt(p.price)}</td>
                         <td><span className="badge badge--purple">{(p.taxSlab || '18%') + ' ' + (p.isTaxInclusive ? '(Inc)' : '(Exc)')}</span></td>
                         <td><span className={`badge ${(p.stock || 0) <= (p.lowStockLevel || 5) ? 'badge--red' : 'badge--green'}`}>{(p.stock || 0) <= 0 ? 'Out of Stock' : (p.stock || 0) <= (p.lowStockLevel || 5) ? 'Low Stock' : 'In Stock'}</span></td>
@@ -2211,7 +2480,20 @@ export default function Dashboard({ globalSearch = '' }) {
                     <td style={{ color: 'var(--text-3)' }}>{p.lastTxn}</td>
                     <td style={{ textAlign: 'right' }}>
                       <span className={`badge ${p.balance < -50000 ? 'badge--red' : 'badge--green'}`} style={{ marginRight: '8px' }}>Score: {p.balance < -50000 ? 'Poor' : 'Excellent'}</span>
-                      <button className="btn--icon" onClick={() => deleteParty(p.id)}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
+                      <button className="btn--icon" title="Record Payment" style={{ marginRight: '4px' }} onClick={() => {
+                        setPaymentForm({
+                          partyId: p.id,
+                          partyName: p.name,
+                          type: p.balance > 0 ? 'Receive' : 'Pay',
+                          amount: Math.abs(p.balance) || 0,
+                          mode: 'Cash',
+                          referenceNo: '',
+                          date: new Date().toISOString().substring(0, 10)
+                        });
+                        setShowPaymentModal(true);
+                      }}><i className="fas fa-money-bill-wave" style={{ color: 'var(--green)' }}></i></button>
+                      <button className="btn--icon" title="View Statement" style={{ marginRight: '4px' }} onClick={() => alert(`View Statement for ${p.name}`)}><i className="fas fa-file-pdf" style={{ color: 'var(--primary)' }}></i></button>
+                      <button className="btn--icon" title="Delete Party" onClick={() => deleteParty(p.id)}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
                     </td>
                   </tr>
                 ))}
@@ -2226,24 +2508,34 @@ export default function Dashboard({ globalSearch = '' }) {
       {currentView === 'financial' && (
         <section className="view active" id="view-financial">
           <div className="sec-header">
-            <h2>Financial Management</h2>
-            <p>Track operating stats, tax estimations, and balance assets.</p>
+            <h2>Accounting & Financial Management</h2>
+            <p>Comprehensive accounting modules including Trial Balance, P&L, and Balance Sheet.</p>
           </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button className={`btn btn--sm ${finTab === 'overview' ? 'btn--primary' : ''}`} onClick={() => setFinTab('overview')}>Overview</button>
+            <button className={`btn btn--sm ${finTab === 'trial' ? 'btn--primary' : ''}`} onClick={() => setFinTab('trial')}>Trial Balance</button>
+            <button className={`btn btn--sm ${finTab === 'pnl' ? 'btn--primary' : ''}`} onClick={() => setFinTab('pnl')}>Profit & Loss</button>
+            <button className={`btn btn--sm ${finTab === 'balance' ? 'btn--primary' : ''}`} onClick={() => setFinTab('balance')}>Balance Sheet</button>
+          </div>
+
+          {finTab === 'overview' && (
+            <>
 
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <div className="card card--lift">
               <div className="stat__icon stat__icon--g" style={{ marginBottom: '14px' }}><i className="fas fa-arrow-trend-up"></i></div>
-              <div className="stat__val">{fmt(profit)}</div>
+              <div className="stat__val"><AnimatedNumber value={profit} duration={1000} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Net Profit (This Month)</div>
             </div>
             <div className="card card--lift">
               <div className="stat__icon stat__icon--r" style={{ marginBottom: '14px' }}><i className="fas fa-arrow-trend-down"></i></div>
-              <div className="stat__val">{fmt(totalPurchases)}</div>
+              <div className="stat__val"><AnimatedNumber value={totalPurchases} duration={1000} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Total Expenses</div>
             </div>
             <div className="card card--lift">
               <div className="stat__icon stat__icon--y" style={{ marginBottom: '14px' }}><i className="fas fa-hand-holding-dollar"></i></div>
-              <div className="stat__val">{fmt(cashInHand)}</div>
+              <div className="stat__val"><AnimatedNumber value={cashInHand} duration={1000} formatter={v => fmt(Math.round(v))} /></div>
               <div className="stat__lbl">Cash in Hand</div>
             </div>
           </div>
@@ -2251,7 +2543,7 @@ export default function Dashboard({ globalSearch = '' }) {
           <div className="two-col">
             <div className="card chart-area">
               <div className="card__head"><span>Operating Expenses</span></div>
-              <div style={{ height: '240px' }}><Doughnut data={expenseChartData} options={{ responsive: true, maintainAspectRatio: false }} /></div>
+              <div style={{ height: '240px' }}><Doughnut data={expenseChartData} options={{ responsive: true, maintainAspectRatio: false, animation: { duration: 1000, easing: 'easeOutCubic' } }} /></div>
             </div>
             <div className="card">
               <div className="card__head"><span>Pending Receivables / Dues</span></div>
@@ -2259,12 +2551,93 @@ export default function Dashboard({ globalSearch = '' }) {
                 {dbData.sales.filter(s => s.status === 'Pending').map((s, idx) => (
                   <div className="alert-row" key={idx}>
                     <div style={{ flex: 1 }}><div className="alert-row__name">{s.customer}</div><div className="alert-row__meta">Sale Due ({s.date})</div></div>
-                    <span className="badge badge--red">{fmt(s.amount)}</span>
+                    <span className="badge badge--red"><AnimatedNumber value={Number(s.amount)||0} duration={700} formatter={v => fmt(Math.round(v))} /></span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+          </>
+          )}
+
+          {finTab === 'trial' && (
+            <div className="card">
+              <h3>Trial Balance (As of Today)</h3>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Account Name</th>
+                    <th style={{ textAlign: 'right' }}>Debit Balance</th>
+                    <th style={{ textAlign: 'right' }}>Credit Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Cash Account</td><td style={{ textAlign: 'right' }}>{fmt(cashInHand > 0 ? cashInHand : 0)}</td><td style={{ textAlign: 'right' }}>{fmt(cashInHand < 0 ? Math.abs(cashInHand) : 0)}</td></tr>
+                  <tr><td>Accounts Receivable</td><td style={{ textAlign: 'right' }}>{fmt(totalPendingReceivables)}</td><td style={{ textAlign: 'right' }}>-</td></tr>
+                  <tr><td>Accounts Payable</td><td style={{ textAlign: 'right' }}>-</td><td style={{ textAlign: 'right' }}>{fmt(totalOutstandingPayables)}</td></tr>
+                  <tr><td>Sales Revenue</td><td style={{ textAlign: 'right' }}>-</td><td style={{ textAlign: 'right' }}>{fmt(totalSales)}</td></tr>
+                  <tr><td>Purchase Expenses</td><td style={{ textAlign: 'right' }}>{fmt(totalPurchases)}</td><td style={{ textAlign: 'right' }}>-</td></tr>
+                  <tr style={{ fontWeight: 'bold', background: 'var(--bg)' }}>
+                    <td>Total</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(Math.max(0, cashInHand) + totalPendingReceivables + totalPurchases)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(Math.max(0, -cashInHand) + totalOutstandingPayables + totalSales)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {finTab === 'pnl' && (
+            <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Profit & Loss Statement</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                <span>Sales Revenue</span><span>{fmt(totalSales)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                <span>Cost of Goods Sold (Purchases)</span><span>- {fmt(totalPurchases)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)', fontWeight: 'bold' }}>
+                <span>Gross Profit</span><span>{fmt(totalSales - totalPurchases)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                <span>Operating Expenses</span><span>- {fmt(0)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', fontWeight: 'bold', fontSize: '1.1rem', color: profit >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                <span>Net Profit</span><span>{fmt(profit)}</span>
+              </div>
+            </div>
+          )}
+
+          {finTab === 'balance' && (
+            <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Balance Sheet</h3>
+              
+              <h4 style={{ color: 'var(--primary)', marginBottom: '10px' }}>Assets</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                <span>Cash & Equivalents</span><span>{fmt(Math.max(0, cashInHand))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <span>Accounts Receivable</span><span>{fmt(totalPendingReceivables)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontWeight: 'bold', marginBottom: '20px' }}>
+                <span>Total Assets</span><span>{fmt(Math.max(0, cashInHand) + totalPendingReceivables)}</span>
+              </div>
+
+              <h4 style={{ color: 'var(--red)', marginBottom: '10px' }}>Liabilities & Equity</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                <span>Accounts Payable</span><span>{fmt(totalOutstandingPayables)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                <span>Overdrawn Cash (Liability)</span><span>{fmt(Math.max(0, -cashInHand))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <span>Retained Earnings (Net Profit)</span><span>{fmt(profit)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontWeight: 'bold' }}>
+                <span>Total Liabilities & Equity</span><span>{fmt(totalOutstandingPayables + Math.max(0, -cashInHand) + profit)}</span>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -2408,7 +2781,195 @@ export default function Dashboard({ globalSearch = '' }) {
         </section>
       )}
 
-      {/* ==================== MODULE 8: REPORTS ==================== */}
+      {/* ==================== MODULE 8: GST & TAXES ==================== */}
+      {currentView === 'gst' && (
+        <section className="view active" id="view-gst">
+          <div className="sec-header">
+            <h2>GST & Tax Management</h2>
+            <p>Generate, review, and export GSTR reports for tax filing.</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button className={`btn btn--sm ${gstTab === 'gstr1' ? 'btn--primary' : ''}`} onClick={() => setGstTab('gstr1')}>GSTR-1 (Sales)</button>
+            <button className={`btn btn--sm ${gstTab === 'gstr2' ? 'btn--primary' : ''}`} onClick={() => setGstTab('gstr2')}>GSTR-2 (Purchases)</button>
+            <button className={`btn btn--sm ${gstTab === 'gstr3b' ? 'btn--primary' : ''}`} onClick={() => setGstTab('gstr3b')}>GSTR-3B (Summary)</button>
+          </div>
+
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3>{gstTab === 'gstr1' ? 'Outward Supplies (GSTR-1)' : gstTab === 'gstr2' ? 'Inward Supplies (GSTR-2)' : 'Monthly Summary (GSTR-3B)'}</h3>
+              <button className="btn btn--sm btn--primary" onClick={() => alert('GST JSON exported for portal.')}><i className="fas fa-download"></i> Export JSON</button>
+            </div>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th>Party Name</th>
+                  <th>GSTIN</th>
+                  <th style={{ textAlign: 'right' }}>Taxable Value</th>
+                  <th style={{ textAlign: 'right' }}>CGST</th>
+                  <th style={{ textAlign: 'right' }}>SGST</th>
+                  <th style={{ textAlign: 'right' }}>IGST</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gstTab === 'gstr1' ? dbData.sales.map((s, idx) => {
+                  const amount = parseFloat(s.amount) || 0;
+                  const tax = amount * 0.18; // Mock 18% tax calculation
+                  const cgst = tax / 2;
+                  const sgst = tax / 2;
+                  const party = dbData.parties.find(p => p.name === s.customer) || {};
+                  return (
+                    <tr key={idx}>
+                      <td>{s.id}</td>
+                      <td>{s.date}</td>
+                      <td>{s.customer}</td>
+                      <td>{party.gstin || 'UNREGISTERED'}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(amount - tax)}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(cgst)}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(sgst)}</td>
+                      <td style={{ textAlign: 'right' }}>0.00</td>
+                      <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{fmt(amount)}</td>
+                    </tr>
+                  )
+                }) : gstTab === 'gstr2' ? dbData.purchases.map((p, idx) => {
+                  const amount = parseFloat(p.amount) || 0;
+                  const tax = amount * 0.18; // Mock 18% tax calculation
+                  const cgst = tax / 2;
+                  const sgst = tax / 2;
+                  const party = dbData.parties.find(pt => pt.name === p.supplier) || {};
+                  return (
+                    <tr key={idx}>
+                      <td>{p.id}</td>
+                      <td>{p.date}</td>
+                      <td>{p.supplier}</td>
+                      <td>{party.gstin || 'UNREGISTERED'}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(amount - tax)}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(cgst)}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(sgst)}</td>
+                      <td style={{ textAlign: 'right' }}>0.00</td>
+                      <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{fmt(amount)}</td>
+                    </tr>
+                  )
+                }) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>
+                      GSTR-3B Summary is calculated at the end of the month based on GSTR-1 and GSTR-2.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== MODULE 9: EXPENSES ==================== */}
+      {currentView === 'expenses' && (
+        <section className="view active" id="view-expenses">
+          <div className="sec-header sec-header--row">
+            <div>
+              <h2>Expense Management</h2>
+              <p>Track business expenses, overheads, and operating costs.</p>
+            </div>
+            <button className="btn btn--primary" onClick={() => setShowExpenseModal(true)}><i className="fas fa-plus"></i> Record Expense</button>
+          </div>
+
+          <div className="card">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Payment Mode</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(dbData.expenses || []).map((exp, idx) => (
+                  <tr key={idx}>
+                    <td style={{ color: 'var(--text-3)' }}>{exp.date}</td>
+                    <td><span className="badge badge--yellow">{exp.category}</span></td>
+                    <td style={{ color: 'var(--text-2)' }}>{exp.description || '-'}</td>
+                    <td>{exp.paymentMode}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--red)' }}>{fmt(exp.amount)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn--icon" onClick={() => alert('Delete Expense')}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
+                    </td>
+                  </tr>
+                ))}
+                {!(dbData.expenses && dbData.expenses.length > 0) && (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No expenses recorded yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== MODULE 10: OFFERS & DISCOUNTS ==================== */}
+      {currentView === 'offers' && (
+        <section className="view active" id="view-offers">
+          <div className="sec-header sec-header--row">
+            <div>
+              <h2>Offers & Discount Management</h2>
+              <p>Create promotional offers, coupons, and discounts for billing.</p>
+            </div>
+            <button className="btn btn--primary" onClick={() => { setEditingOffer(null); setOfferForm({ code: '', type: 'Percentage', value: 0, startDate: '', endDate: '', minBillAmount: 0, applicableCategory: '', applicableProduct: '', usageLimit: 0, isActive: true }); setShowOfferModal(true); }}><i className="fas fa-tag"></i> Create Offer</button>
+          </div>
+
+          <div className="card">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Validity</th>
+                  <th>Min Bill</th>
+                  <th>Usage Limit</th>
+                  <th>Active</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(dbData.offers || []).map((o, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{o.code}</td>
+                    <td><span className="badge badge--blue">{o.type}</span></td>
+                    <td style={{ fontWeight: 'bold' }}>{o.type === 'Percentage' ? `${o.value}%` : fmt(o.value)}</td>
+                    <td style={{ color: 'var(--text-3)' }}>{o.startDate || '-'} to {o.endDate || '-'}</td>
+                    <td>{o.minBillAmount > 0 ? fmt(o.minBillAmount) : 'None'}</td>
+                    <td style={{ color: 'var(--text-3)' }}>{o.usedCount} / {o.usageLimit > 0 ? o.usageLimit : '∞'}</td>
+                    <td>
+                      <button className={`btn btn--sm ${o.isActive ? 'btn--primary' : ''}`} onClick={() => handleOfferToggle(o.id)}>
+                        {o.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn--icon" onClick={() => { setEditingOffer(o); setOfferForm({ ...o }); setShowOfferModal(true); }}><i className="fas fa-pen"></i></button>
+                      <button className="btn--icon" onClick={() => deleteOffer(o.id)}><i className="fas fa-trash" style={{ color: 'var(--red)' }}></i></button>
+                    </td>
+                  </tr>
+                ))}
+                {!(dbData.offers && dbData.offers.length > 0) && (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No offers created yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== MODULE 11: REPORTS ==================== */}
       {currentView === 'reports' && (
         <section className="view active" id="view-reports">
           <div className="sec-header">
@@ -2934,39 +3495,162 @@ export default function Dashboard({ globalSearch = '' }) {
       )}
 
       {showPartyModal && (
-        <div className="modal" style={{ display: 'block', zIndex: 1000 }}>
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: '600px' }}>
           <div className="modal__top">
             <h3>Add New Party</h3>
             <button className="btn--icon" onClick={() => setShowPartyModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
           </div>
+          
+          <div className="modal-tabs" style={{ display: 'flex', gap: '15px', borderBottom: '1px solid var(--border)', marginBottom: '15px' }}>
+            <div className={`tab-item ${partyModalTab === 'basic' ? 'active' : ''}`} onClick={() => setPartyModalTab('basic')} style={{ cursor: 'pointer', paddingBottom: '8px', borderBottom: partyModalTab === 'basic' ? '2px solid var(--primary)' : 'none', fontWeight: partyModalTab === 'basic' ? 600 : 400 }}>Basic Info</div>
+            <div className={`tab-item ${partyModalTab === 'billing' ? 'active' : ''}`} onClick={() => setPartyModalTab('billing')} style={{ cursor: 'pointer', paddingBottom: '8px', borderBottom: partyModalTab === 'billing' ? '2px solid var(--primary)' : 'none', fontWeight: partyModalTab === 'billing' ? 600 : 400 }}>Billing & Tax</div>
+            <div className={`tab-item ${partyModalTab === 'credit' ? 'active' : ''}`} onClick={() => setPartyModalTab('credit')} style={{ cursor: 'pointer', paddingBottom: '8px', borderBottom: partyModalTab === 'credit' ? '2px solid var(--primary)' : 'none', fontWeight: partyModalTab === 'credit' ? 600 : 400 }}>Credit & Bank</div>
+          </div>
+
           <form onSubmit={handlePartySubmit}>
-            <div className="fg"><label>Party Name</label>
-              <input className="fi" value={partyForm.name} onChange={(e) => setPartyForm({ ...partyForm, name: e.target.value })} required />
-            </div>
-            <div className="form-row">
-              <div className="fg"><label>Type</label>
-                <select className="fi" value={partyForm.type} onChange={(e) => setPartyForm({ ...partyForm, type: e.target.value })}>
-                  <option>Customer</option>
-                  <option>Supplier</option>
-                </select>
-              </div>
-              <div className="fg"><label>Phone</label>
-                <input type="tel" className="fi" value={partyForm.phone} onChange={(e) => setPartyForm({ ...partyForm, phone: e.target.value })} required />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="fg"><label>Opening Balance ({getCurrencySymbol()})</label>
-                <input type="number" className="fi" value={partyForm.balance} onChange={(e) => setPartyForm({ ...partyForm, balance: e.target.value })} />
-              </div>
-              <div className="fg"><label>State</label>
-                <select className="fi" value={partyForm.state || 'Karnataka'} onChange={(e) => setPartyForm({ ...partyForm, state: e.target.value })}>
-                  {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+            {partyModalTab === 'basic' && (
+              <>
+                <div className="form-row">
+                  <div className="fg"><label>Party Name <span style={{color: 'red'}}>*</span></label>
+                    <input className="fi" value={partyForm.name} onChange={(e) => setPartyForm({ ...partyForm, name: e.target.value })} required />
+                  </div>
+                  <div className="fg"><label>Type</label>
+                    <select className="fi" value={partyForm.type} onChange={(e) => setPartyForm({ ...partyForm, type: e.target.value })}>
+                      <option>Customer</option>
+                      <option>Supplier</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="fg"><label>Phone <span style={{color: 'red'}}>*</span></label>
+                    <input type="tel" className="fi" value={partyForm.phone} onChange={(e) => setPartyForm({ ...partyForm, phone: e.target.value })} required />
+                  </div>
+                  <div className="fg"><label>WhatsApp Number</label>
+                    <input type="tel" className="fi" value={partyForm.whatsappNumber} onChange={(e) => setPartyForm({ ...partyForm, whatsappNumber: e.target.value })} placeholder="Same as phone if empty" />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="fg"><label>Email Address</label>
+                    <input type="email" className="fi" value={partyForm.email} onChange={(e) => setPartyForm({ ...partyForm, email: e.target.value })} />
+                  </div>
+                  {partyForm.type === 'Customer' && (
+                    <div className="fg"><label>Customer Group</label>
+                      <select className="fi" value={partyForm.customerGroup} onChange={(e) => setPartyForm({ ...partyForm, customerGroup: e.target.value })}>
+                        <option>Retail</option>
+                        <option>Wholesale</option>
+                        <option>VIP</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {partyModalTab === 'billing' && (
+              <>
+                <div className="fg"><label>Billing Address</label>
+                  <textarea className="fi" rows="2" value={partyForm.billingAddress} onChange={(e) => setPartyForm({ ...partyForm, billingAddress: e.target.value })}></textarea>
+                </div>
+                <div className="fg"><label>Shipping Address</label>
+                  <textarea className="fi" rows="2" value={partyForm.shippingAddress} onChange={(e) => setPartyForm({ ...partyForm, shippingAddress: e.target.value })} placeholder="Leave empty if same as billing"></textarea>
+                </div>
+                <div className="form-row">
+                  <div className="fg"><label>State (Place of Supply)</label>
+                    <select className="fi" value={partyForm.state || 'Karnataka'} onChange={(e) => setPartyForm({ ...partyForm, state: e.target.value })}>
+                      {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="fg"><label>GSTIN</label>
+                    <input className="fi" value={partyForm.gstin} onChange={(e) => setPartyForm({ ...partyForm, gstin: e.target.value.toUpperCase() })} placeholder="e.g. 29ABCDE1234F1Z5" maxLength="15" />
+                  </div>
+                  <div className="fg"><label>PAN Number</label>
+                    <input className="fi" value={partyForm.pan} onChange={(e) => setPartyForm({ ...partyForm, pan: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength="10" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {partyModalTab === 'credit' && (
+              <>
+                <div className="form-row">
+                  <div className="fg"><label>Opening Balance ({getCurrencySymbol()})</label>
+                    <input type="number" className="fi" value={partyForm.openingBalance} onChange={(e) => setPartyForm({ ...partyForm, openingBalance: e.target.value })} placeholder="Positive = Receivable, Negative = Payable" />
+                  </div>
+                  <div className="fg"><label>Credit Limit ({getCurrencySymbol()})</label>
+                    <input type="number" className="fi" value={partyForm.creditLimit} onChange={(e) => setPartyForm({ ...partyForm, creditLimit: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="fg"><label>Payment Terms</label>
+                    <select className="fi" value={partyForm.paymentTerms} onChange={(e) => setPartyForm({ ...partyForm, paymentTerms: e.target.value })}>
+                      <option>Due on Receipt</option>
+                      <option>Net 15</option>
+                      <option>Net 30</option>
+                      <option>Net 45</option>
+                      <option>Net 60</option>
+                      <option>Custom</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="fg"><label>Bank Details / UPI / Notes</label>
+                  <textarea className="fi" rows="2" value={partyForm.bankDetails} onChange={(e) => setPartyForm({ ...partyForm, bankDetails: e.target.value })} placeholder="Account no, IFSC, UPI ID, etc."></textarea>
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--border)' }}>
               <button type="button" className="btn" onClick={() => setShowPartyModal(false)}>Cancel</button>
-              <button type="submit" className="btn btn--primary">Save Party</button>
+              <button type="submit" className="btn btn--primary"><i className="fas fa-check"></i> Save Party</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showExpenseModal && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: '500px' }}>
+          <div className="modal__top">
+            <h3>Record New Expense</h3>
+            <button className="btn--icon" onClick={() => setShowExpenseModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <form onSubmit={handleExpenseSubmit}>
+            <div className="form-row">
+              <div className="fg"><label>Date <span style={{color: 'red'}}>*</span></label>
+                <input type="date" className="fi" value={expenseForm.date} onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
+              </div>
+              <div className="fg"><label>Category <span style={{color: 'red'}}>*</span></label>
+                <select className="fi" value={expenseForm.category} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>
+                  <option>Rent</option>
+                  <option>Salary & Wages</option>
+                  <option>Utilities (Electricity/Water)</option>
+                  <option>Office Supplies</option>
+                  <option>Travel & Fuel</option>
+                  <option>Marketing</option>
+                  <option>Miscellaneous</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="fg"><label>Amount ({getCurrencySymbol()}) <span style={{color: 'red'}}>*</span></label>
+                <input type="number" className="fi" value={expenseForm.amount} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} required min="1" />
+              </div>
+              <div className="fg"><label>Payment Mode</label>
+                <select className="fi" value={expenseForm.paymentMode} onChange={(e) => setExpenseForm({ ...expenseForm, paymentMode: e.target.value })}>
+                  <option>Cash</option>
+                  <option>Bank Transfer</option>
+                  <option>UPI</option>
+                  <option>Credit Card</option>
+                  <option>Cheque</option>
+                </select>
+              </div>
+            </div>
+            <div className="fg"><label>Description / Notes</label>
+              <textarea className="fi" rows="2" value={expenseForm.description} onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })} placeholder="What was this expense for?"></textarea>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn" onClick={() => setShowExpenseModal(false)}>Cancel</button>
+              <button type="submit" className="btn btn--primary"><i className="fas fa-check"></i> Save Expense</button>
             </div>
           </form>
         </div>
@@ -3187,7 +3871,7 @@ export default function Dashboard({ globalSearch = '' }) {
                   return (
                     <tr key={p.id}>
                       <td style={{ fontWeight: 500 }}>{p.name} <span style={{ fontSize: 11, color: 'var(--text-3)', display: 'block' }}>SKU: {p.sku}</span></td>
-                      <td>{p.stock}</td>
+                      <td><AnimatedNumber value={Number(p.stock)||0} duration={600} formatter={v => Math.round(v)} /></td>
                       <td>
                         <input type="number" className="fi" style={{ padding: '4px 8px', height: 'auto' }} value={physicalCounts[p.sku] ?? ''} placeholder={p.stock} onChange={(e) => {
                           setPhysicalCounts({ ...physicalCounts, [p.sku]: e.target.value === '' ? undefined : parseInt(e.target.value) || 0 });
@@ -3281,6 +3965,113 @@ export default function Dashboard({ globalSearch = '' }) {
             <button className="btn" onClick={() => setShowBarcodeModal(false)}>Close</button>
             <button className="btn btn--primary" onClick={() => window.print()}><i className="fas fa-print"></i> Print Label</button>
           </div>
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: '500px' }}>
+          <div className="modal__top">
+            <h3>Record Payment</h3>
+            <button className="btn--icon" onClick={() => setShowPaymentModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <form onSubmit={handlePaymentSubmit}>
+            <p style={{ marginBottom: '15px' }}>Recording payment for party: <strong>{paymentForm.partyName}</strong></p>
+            <div className="form-row">
+              <div className="fg"><label>Payment Type</label>
+                <select className="fi" value={paymentForm.type} onChange={(e) => setPaymentForm({ ...paymentForm, type: e.target.value })}>
+                  <option value="Receive">Receive Payment (In)</option>
+                  <option value="Pay">Make Payment (Out)</option>
+                </select>
+              </div>
+              <div className="fg"><label>Date <span style={{color: 'red'}}>*</span></label>
+                <input type="date" className="fi" value={paymentForm.date} onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })} required />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="fg"><label>Amount ({getCurrencySymbol()}) <span style={{color: 'red'}}>*</span></label>
+                <input type="number" className="fi" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required min="1" step="0.01" />
+              </div>
+              <div className="fg"><label>Payment Mode</label>
+                <select className="fi" value={paymentForm.mode} onChange={(e) => setPaymentForm({ ...paymentForm, mode: e.target.value })}>
+                  <option>Cash</option>
+                  <option>Bank Transfer</option>
+                  <option>UPI</option>
+                  <option>Credit Card</option>
+                  <option>Cheque</option>
+                </select>
+              </div>
+            </div>
+            <div className="fg"><label>Reference No / Notes</label>
+              <input type="text" className="fi" value={paymentForm.referenceNo} onChange={(e) => setPaymentForm({ ...paymentForm, referenceNo: e.target.value })} placeholder="Cheque No, UPI Ref, etc." />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn" onClick={() => setShowPaymentModal(false)}>Cancel</button>
+              <button type="submit" className="btn btn--primary"><i className="fas fa-check"></i> Save Payment</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showOfferModal && (
+        <div className="modal" style={{ display: 'block', zIndex: 1000, maxWidth: '600px' }}>
+          <div className="modal__top">
+            <h3>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</h3>
+            <button className="btn--icon" onClick={() => setShowOfferModal(false)}><i className="fas fa-xmark" style={{ fontSize: '18px' }}></i></button>
+          </div>
+          <form onSubmit={handleOfferSubmit}>
+            <div className="form-row">
+              <div className="fg"><label>Coupon Code <span style={{color: 'red'}}>*</span></label>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <input type="text" className="fi" value={offerForm.code} onChange={(e) => setOfferForm({ ...offerForm, code: e.target.value.toUpperCase() })} required placeholder="e.g. SUMMER20" />
+                  <button type="button" className="btn" onClick={() => setOfferForm({ ...offerForm, code: 'VYAPAR' + Math.floor(Math.random() * 10000) })}><i className="fas fa-magic"></i></button>
+                </div>
+              </div>
+              <div className="fg"><label>Offer Type</label>
+                <select className="fi" value={offerForm.type} onChange={(e) => setOfferForm({ ...offerForm, type: e.target.value })}>
+                  <option>Percentage</option>
+                  <option>Flat Discount</option>
+                  <option>Buy X Get Y</option>
+                  <option>Bundle</option>
+                  <option>Seasonal</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="form-row">
+              <div className="fg"><label>Discount Value ({offerForm.type === 'Percentage' ? '%' : getCurrencySymbol()})</label>
+                <input type="number" className="fi" value={offerForm.value} onChange={(e) => setOfferForm({ ...offerForm, value: e.target.value })} min="0" step="0.01" />
+              </div>
+              <div className="fg"><label>Min Bill Amount ({getCurrencySymbol()})</label>
+                <input type="number" className="fi" value={offerForm.minBillAmount} onChange={(e) => setOfferForm({ ...offerForm, minBillAmount: e.target.value })} min="0" />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="fg"><label>Start Date</label>
+                <input type="date" className="fi" value={offerForm.startDate} onChange={(e) => setOfferForm({ ...offerForm, startDate: e.target.value })} />
+              </div>
+              <div className="fg"><label>End Date</label>
+                <input type="date" className="fi" value={offerForm.endDate} onChange={(e) => setOfferForm({ ...offerForm, endDate: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="fg"><label>Usage Limit (0 for unlimited)</label>
+                <input type="number" className="fi" value={offerForm.usageLimit} onChange={(e) => setOfferForm({ ...offerForm, usageLimit: e.target.value })} min="0" />
+              </div>
+              <div className="fg"><label>Status</label>
+                <select className="fi" value={offerForm.isActive ? 'Active' : 'Inactive'} onChange={(e) => setOfferForm({ ...offerForm, isActive: e.target.value === 'Active' })}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--border)' }}>
+              <button type="button" className="btn" onClick={() => setShowOfferModal(false)}>Cancel</button>
+              <button type="submit" className="btn btn--primary"><i className="fas fa-check"></i> Save Offer</button>
+            </div>
+          </form>
         </div>
       )}
 

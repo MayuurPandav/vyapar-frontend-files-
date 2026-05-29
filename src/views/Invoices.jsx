@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import AnimatedNumber from '../components/AnimatedNumber';
 
 export default function Invoices() {
   const { user } = useApp();
@@ -59,7 +60,7 @@ export default function Invoices() {
                     <td>{inv.invoiceNumber || inv.id}</td>
                     <td>{inv.customer}</td>
                     <td>{inv.date}</td>
-                    <td>{inv.totalAmount || inv.amount}</td>
+                    <td><AnimatedNumber value={Number(inv.totalAmount || inv.amount) || 0} duration={700} formatter={v => String(Math.round(v))} /></td>
                     <td style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => downloadInvoicePDF(inv.id, inv.invoiceNumber || inv.id)} className="btn">Download PDF</button>
                       <button onClick={()=>del(inv.id)} className="btn btn--danger">Delete</button>

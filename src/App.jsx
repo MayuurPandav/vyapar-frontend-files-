@@ -6,9 +6,16 @@ import Login from './views/Login';
 import Onboarding from './views/Onboarding';
 import Dashboard from './views/Dashboard';
 import SuperAdmin from './views/SuperAdmin';
+import Delivery from './views/Delivery';
+import Barcodes from './views/Barcodes';
+import Reports from './views/Reports';
+import Offers from './views/Offers';
+import Notifications from './views/Notifications';
+import DataManagement from './views/DataManagement';
+
 
 function AppContent() {
-  const { token, user, viewOnly, backToSuperAdmin } = useApp();
+  const { token, user, viewOnly, backToSuperAdmin, isSuperAdmin, currentView } = useApp();
   const [globalSearch, setGlobalSearch] = React.useState('');
 
   // 1. If not logged in, render the login view
@@ -21,7 +28,9 @@ function AppContent() {
     return <Onboarding />;
   }
 
-  const isSuperAdmin = user.role === 'super_admin';
+  // `isSuperAdmin` is provided by AppContext (normalizes role strings)
+
+
 
   return (
     <div className="app">
@@ -78,7 +87,18 @@ function AppContent() {
           // Regular Admin & simulated tenant views
           <main className="main">
             <Topbar onSearch={setGlobalSearch} />
-            <Dashboard globalSearch={globalSearch} />
+            {/** render view based on currentView state (dashboard default) */}
+            {(() => {
+              switch (currentView) {
+                case 'delivery': return <Delivery />;
+                case 'barcodes': return <Barcodes />;
+                case 'reports': return <Reports />;
+                case 'offers': return <Offers />;
+                case 'notifications': return <Notifications />;
+                case 'data': return <DataManagement />;
+                default: return <Dashboard globalSearch={globalSearch} />;
+              }
+            })()}
           </main>
         )}
       </div>

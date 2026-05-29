@@ -4,13 +4,16 @@ import { useApp } from '../context/AppContext';
 export default function Login() {
   const { handleLogin } = useApp();
   const [isLogin, setIsLogin] = useState(true);
+  
+  // Admin states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
-  const [launchTarget, setLaunchTarget] = useState('index.html');
+  const [launchTarget, setLaunchTarget] = useState('dashboard');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +34,8 @@ export default function Login() {
       if (res.ok) {
         setLoading(false);
         setLaunching(true);
-        setLaunchTarget(data.user.role === 'super_admin' ? 'super_admin' : 'dashboard');
+        const r = (data.user && data.user.role || '').toString().toLowerCase().replace(/[-_]/g, '');
+        setLaunchTarget(r === 'superadmin' ? 'super_admin' : 'dashboard');
         
         setTimeout(() => {
           setLaunching(false);
@@ -86,8 +90,12 @@ export default function Login() {
         <div className="launch-overlay active" style={{ position: 'absolute', inset: 0, background: 'rgba(3, 10, 25, 0.94)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', zIndex: 20, opacity: 1, visibility: 'visible' }}>
           <div className="launch-card" style={{ width: 'min(92%, 420px)', padding: '36px 30px', borderRadius: '28px', backgroundColor: 'rgba(12, 20, 42, 0.95)', border: '1px solid rgba(99, 102, 241, 0.16)', boxShadow: '0 36px 90px rgba(0,0,0,0.45)', textAlign: 'center' }}>
             <div className="launch-logo" style={{ width: '68px', height: '68px', margin: '0 auto 18px', display: 'grid', placeItems: 'center', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 0.9))', boxShadow: '0 16px 35px rgba(59, 130, 246, 0.25)' }}><i className="fas fa-rocket" style={{ color: '#fff', fontSize: '1.35rem' }}></i></div>
-            <h2 style={{ fontSize: '1.65rem', letterSpacing: '-0.04em', color: '#f8fafc', margin: 0 }}>Launching Vyapar</h2>
-            <p style={{ color: 'rgba(241, 245, 249, 0.78)', fontSize: '0.95rem', lineHigh: 1.8, margin: '14px 0 24px' }}>Preparing your secure business dashboard. This will only take a moment.</p>
+            <h2 style={{ fontSize: '1.65rem', letterSpacing: '-0.04em', color: '#f8fafc', margin: 0 }}>
+              Launching Vyapar
+            </h2>
+            <p style={{ color: 'rgba(241, 245, 249, 0.78)', fontSize: '0.95rem', lineHeight: 1.8, margin: '14px 0 24px' }}>
+              Preparing your secure business dashboard. This will only take a moment.
+            </p>
             <div className="launch-progress" style={{ height: '10px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
               <span style={{ display: 'block', width: '100%', height: '100%', background: 'linear-gradient(90deg, #22c55e, #6366f1, #ec4899)', transition: 'width 1.2s ease-in-out' }}></span>
             </div>
@@ -107,21 +115,25 @@ export default function Login() {
         border: '1px solid rgba(255, 255, 255, 0.1)',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         position: 'relative',
-        zIndex: 10
+        zIndex: 10,
+        maxHeight: '90vh',
+        overflowY: 'auto'
       }}>
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '40px' }}>
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '30px' }}>
           <div className="logo-icon-wrapper" style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.4)' }}>
             <i className="fas fa-chart-pie" style={{ fontSize: '24px', color: '#fff' }}></i>
           </div>
-          <span style={{ fontSize: '32px', fontWeight: 700, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>Vyapar</span>
+          <span style={{ fontSize: '32px', fontWeight: 700, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>
+            Vyapar
+          </span>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Email Address</label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Email / Username</label>
             <div className="input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
-                type="email"
+                type="text"
                 className="form-control"
                 placeholder="admin@vyapar.com"
                 value={username}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Topbar({ onSearch }) {
-  const { user, syncStatus, currentView, notifications, handleLogout } = useApp();
+  const { user, syncStatus, currentView, setCurrentView, notifications, handleLogout, isSuperAdmin } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -10,7 +10,6 @@ export default function Topbar({ onSearch }) {
 
   if (!user) return null;
 
-  const isSuperAdmin = user.role === 'super_admin';
   const name = user.username.split('@')[0].toUpperCase();
 
   const handleVoiceAssistant = () => {
@@ -161,13 +160,7 @@ export default function Topbar({ onSearch }) {
       )}
 
       <div className="topbar__right" style={{ position: 'relative' }}>
-        {/* Sync Indicator */}
-        {!isSuperAdmin && (
-          <div id="sync-status" style={{ display: 'flex', fontSize: '12px', marginRight: '15px', alignItems: 'center', gap: '6px' }}>
-            <i className={syncStatus.includes('Syncing') ? 'fas fa-spinner fa-spin' : syncStatus.includes('Error') ? 'fas fa-times-circle' : 'fas fa-check-circle'} style={{ color: syncStatus.includes('Error') ? 'var(--red)' : syncStatus.includes('Sync OK') ? 'var(--green)' : 'var(--yellow)' }}></i>
-            {syncStatus}
-          </div>
-        )}
+        {/* Sync Indicator Hidden as requested */}
 
         {/* Notifications Icon & Panel */}
         {!isSuperAdmin && (

@@ -172,6 +172,19 @@ ul {
    display: flex;
    flex-direction: column;
    gap: 6px;
+   overflow-y: auto;
+}
+
+.sidebar__indicator {
+   position: absolute;
+   left: 8px;
+   width: 6px;
+   background: linear-gradient(180deg, var(--accent), var(--blue));
+   border-radius: 6px;
+   transition: top 280ms var(--ease), height 280ms var(--ease), opacity 220ms linear;
+   box-shadow: 0 6px 18px rgba(16,185,129,0.12);
+   z-index: 0;
+   opacity: 0;
 }
 
 .sidebar__link {
@@ -216,6 +229,16 @@ ul {
    transform: translateX(4px);
    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
    background: var(--bg-card);
+}
+
+/* entry animation */
+.sidebar__link {
+   animation: slideIn .28s ease both;
+}
+
+@keyframes slideIn {
+   from { transform: translateX(-8px); opacity: 0; }
+   to { transform: translateX(0); opacity: 1; }
 }
 
 .sidebar__link:hover::after {
@@ -306,7 +329,7 @@ ul {
    box-shadow: 0 0 0 3px var(--accent-glow)
 }
 
-.topbar__search i {
+.topbar__search > i {
    position: absolute;
    left: 16px;
    top: 50%;
@@ -751,6 +774,10 @@ ul {
    font-size: 18px;
    font-weight: 700
 }
+
+/* Delivery empty state */
+.empty-state h3 { font-size: 18px; margin: 0; }
+.empty-state p { margin: 0; }
 
 /* ===========================
    VIEWS

@@ -350,7 +350,7 @@ export default function Settings() {
 
             {tab === 'printing' && (
               <>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '12px' }}>Invoice Configuration</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '12px' }}>Invoice & Thermal Receipt Configuration</h3>
                 <div className="form-row">
                   <div className="fg"><label>Invoice Prefix (e.g. INV, BILL, GST)</label>
                     <input className="fi" value={form.invoicePrefix || ''} onChange={(e) => setForm(prev => ({ ...prev, invoicePrefix: e.target.value }))} />
@@ -362,14 +362,37 @@ export default function Settings() {
                 <div className="form-row">
                   <div className="fg"><label>Print Type</label>
                     <select className="fi" value={form.printType || 'A4'} onChange={(e) => setForm(prev => ({ ...prev, printType: e.target.value }))}>
-                      <option value="A4">A4</option>
-                      <option value="Thermal">Thermal</option>
+                      <option value="A4">A4 Standard Sheet</option>
+                      <option value="Thermal">Thermal POS Printer</option>
                     </select>
                   </div>
-                  <div className="fg" style={{ opacity: 0 }}><label>Spacer</label><div /></div>
+                  <div className="fg"><label>Thermal Paper Size</label>
+                    <select className="fi" value={form.receiptSettings?.paperSize || '3inch'} onChange={(e) => setForm(prev => ({ ...prev, receiptSettings: { ...(prev.receiptSettings || {}), paperSize: e.target.value } }))}>
+                      <option value="3inch">3 Inch (80mm Standard POS)</option>
+                      <option value="2inch">2 Inch (58mm Mini POS)</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="fg"><label>Default Terms & Conditions (Invoice Footer)</label>
-                  <textarea className="fi" rows={3} value={form.termsAndConditions || ''} onChange={(e) => setForm(prev => ({ ...prev, termsAndConditions: e.target.value }))} />
+                <div className="fg"><label>Thermal Receipt Header Tagline</label>
+                  <input className="fi" placeholder="e.g. Thank you for shopping with us!" value={form.receiptSettings?.headerTagline || ''} onChange={(e) => setForm(prev => ({ ...prev, receiptSettings: { ...(prev.receiptSettings || {}), headerTagline: e.target.value } }))} />
+                </div>
+                <div className="fg" style={{ marginTop: '12px' }}><label>Default Terms & Conditions (Invoice Footer)</label>
+                  <textarea className="fi" rows={3} value={form.termsAndConditions || form.receiptSettings?.footerTerms || ''} onChange={(e) => setForm(prev => ({ ...prev, termsAndConditions: e.target.value, receiptSettings: { ...(prev.receiptSettings || {}), footerTerms: e.target.value } }))} />
+                </div>
+
+                <div className="form-row" style={{ marginTop: '14px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input type="checkbox" checked={form.receiptSettings?.showLogo ?? true} onChange={(e) => setForm(prev => ({ ...prev, receiptSettings: { ...(prev.receiptSettings || {}), showLogo: e.target.checked } }))} />
+                    Show Store Logo on Thermal Receipts
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input type="checkbox" checked={form.receiptSettings?.showGstin ?? true} onChange={(e) => setForm(prev => ({ ...prev, receiptSettings: { ...(prev.receiptSettings || {}), showGstin: e.target.checked } }))} />
+                    Show GSTIN on Receipts
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input type="checkbox" checked={form.receiptSettings?.autoPrint ?? true} onChange={(e) => setForm(prev => ({ ...prev, receiptSettings: { ...(prev.receiptSettings || {}), autoPrint: e.target.checked } }))} />
+                    Auto-trigger Print Dialog on Sale
+                  </label>
                 </div>
 
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-1)', borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '12px', marginTop: '20px' }}>Uploads & Branding</h3>

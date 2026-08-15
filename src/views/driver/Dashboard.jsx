@@ -247,9 +247,19 @@ export default function Dashboard({
 
         {/* Address & Items details cards grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-          <div style={{ padding: '16px', background: 'var(--card-bg-hover)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <span style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '6px' }}>{t('address')}</span>
-            <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, lineHeight: '1.5' }}>{selectedDelivery.deliveryAddress}</p>
+          <div style={{ padding: '16px', background: 'var(--card-bg-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '10px', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '6px' }}>{t('address')}</span>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, lineHeight: '1.5' }}>{selectedDelivery.deliveryAddress}</p>
+            </div>
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedDelivery.deliveryAddress)}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '6px', background: '#3b82f6', color: '#ffffff', fontWeight: 700, fontSize: '12px', textDecoration: 'none', width: 'fit-content' }}
+            >
+              🗺️ Open Navigation in Google Maps
+            </a>
           </div>
 
           <div style={{ padding: '16px', background: 'var(--card-bg-hover)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>

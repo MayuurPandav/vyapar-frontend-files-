@@ -527,6 +527,26 @@ const CreateInvoicePage = () => {
 
   useEffect(() => {
     const handleShortcut = (event) => {
+      if (event.key === 'F2') {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        toast('Focused Search Box (F2)', { icon: '🔍' });
+      }
+      if (event.key === 'F4') {
+        event.preventDefault();
+        setPaymentMode('Cash');
+        toast('Payment Mode: Cash (F4)', { icon: '💵' });
+      }
+      if (event.key === 'F8') {
+        event.preventDefault();
+        setPaymentMode('UPI');
+        toast('Payment Mode: UPI (F8)', { icon: '📱' });
+      }
+      if (event.key === 'F10') {
+        event.preventDefault();
+        handleSaveInvoice('print');
+        toast('Saving & Printing Bill (F10)', { icon: '🖨️' });
+      }
       if (event.ctrlKey && event.key === 's') {
         event.preventDefault();
         handleSaveInvoice('save');
@@ -589,6 +609,14 @@ const CreateInvoicePage = () => {
                 Add Items
               </h3>
               <p style={{ marginTop: 4, fontSize: 13, color: 'var(--text-2)' }}>Search products by name, SKU, or barcode and add them to the bill</p>
+              
+              {/* POS Hotkeys Legend Bar */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-2)' }}>
+                <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>⚡ F2: Search / Scan</span>
+                <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>💵 F4: Pay Cash</span>
+                <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.2)' }}>📱 F8: Pay UPI</span>
+                <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>🖨️ F10: Save & Print</span>
+              </div>
             </div>
             
             {/* Search Bar Row */}

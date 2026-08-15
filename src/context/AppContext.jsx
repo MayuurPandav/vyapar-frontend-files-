@@ -311,20 +311,46 @@ export function AppProvider({ children }) {
     });
   };
 
-  // View as Tenant (Super Admin view-only simulation)
+  // View as Tenant (Super Admin view-only simulation & support impersonation)
   const loginAsTenant = async (tenant) => {
-    if (!await window.confirm(`View account: ${tenant.bizName || tenant.username}?\n\n⚠️ You will be in VIEW-ONLY mode.`)) return;
-    const tokenStr = 'mongo_token_' + tenant.username;
-    const userObj = { username: tenant.username, role: tenant.role, phone: tenant.phone, status: tenant.status };
-    
-    setToken(tokenStr);
-    setUser(userObj);
-    setViewOnly(true);
-    localStorage.setItem('vyapar_token', tokenStr);
-    localStorage.setItem('vyapar_user', JSON.stringify(userObj));
-    localStorage.setItem('vyapar_view_only', 'true');
-    
-    setCurrentView('dashboard');
+    if (!await window.confirm(`Inspect & view account: ${tenant.bizName || tenant.username}?\n\n⚠️ You will enter Merchant Support Mode.`)) return;
+    try {
+      const res = await fetch(`/api/super/impersonate/${encodeURIComponent(tenant.username)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        setToken(data.token);
+        setUser(data.user);
+        setViewOnly(true);
+        localStorage.setItem('vyapar_token', data.token);
+        localStorage.setItem('vyapar_user', JSON.stringify(data.user));
+        localStorage.setItem('vyapar_view_only', 'true');
+        setCurrentView('dashboard');
+      } else {
+        const tokenStr = 'mongo_token_' + tenant.username;
+        const userObj = { username: tenant.username, role: tenant.role || 'admin', phone: tenant.phone, status: tenant.status };
+        setToken(tokenStr);
+        setUser(userObj);
+        setViewOnly(true);
+        localStorage.setItem('vyapar_token', tokenStr);
+        localStorage.setItem('vyapar_user', JSON.stringify(userObj));
+        localStorage.setItem('vyapar_view_only', 'true');
+        setCurrentView('dashboard');
+      }
+    } catch (err) {
+      console.error('Impersonation error:', err);
+      const tokenStr = 'mongo_token_' + tenant.username;
+      const userObj = { username: tenant.username, role: tenant.role || 'admin', phone: tenant.phone, status: tenant.status };
+      setToken(tokenStr);
+      setUser(userObj);
+      setViewOnly(true);
+      localStorage.setItem('vyapar_token', tokenStr);
+      localStorage.setItem('vyapar_user', JSON.stringify(userObj));
+      localStorage.setItem('vyapar_view_only', 'true');
+      setCurrentView('dashboard');
+    }
   };
 
   // Back to Super Admin

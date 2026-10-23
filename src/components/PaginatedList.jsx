@@ -19,7 +19,7 @@ export default function PaginatedList({ type }) {
       .then(r => r.json())
       .then(d => {
         if (d.status === 'success') {
-          setItems(d.items || []);
+          setItems(d.data || d.items || []);
           setTotal(d.total || 0);
         }
       }).catch(() => {}).finally(() => setLoading(false));

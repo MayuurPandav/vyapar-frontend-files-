@@ -12,15 +12,72 @@ import Reports from './views/Reports';
 import Offers from './views/Offers';
 import Notifications from './views/Notifications';
 import DataManagement from './views/DataManagement';
-
+import ShopProfileManagement from './views/ShopProfileManagement';
+import UserManagement from './views/UserManagement';
+import GlobalStaff from './views/GlobalStaff';
+import SecuritySettings from './views/SecuritySettings';
+import RoleManagement from './views/RoleManagement';
+import MasterDataManagement from './views/MasterDataManagement';
+import SADashboard from './views/SADashboard';
+import DeliveryBoyApp from './views/driver/DeliveryBoyApp';
+import StaffApp from './views/staff/StaffApp';
+import AccountantApp from './views/accountant/AccountantApp';
+import BusinessOversight from './views/BusinessOversight';
+import SuperAdminTeam from './views/SuperAdminTeam';
+import SupportHelpdesk from './views/SupportHelpdesk';
+import SecurityAudit from './views/SecurityAudit';
+import SADataManagement from './views/SADataManagement';
+import IntegrationsAPI from './views/IntegrationsAPI';
+import PlatformReports from './views/PlatformReports';
+import Invoices from './views/Invoices';
+import BroadcastAdmin from './views/BroadcastAdmin';
+import Staff from './views/Staff';
+import Subscription from './views/Subscription';
+import Settings from './views/Settings';
+import CustomerTrackingPortal from './views/CustomerTrackingPortal';
 
 function AppContent() {
-  const { token, user, viewOnly, backToSuperAdmin, isSuperAdmin, currentView } = useApp();
+  const { token, user, viewOnly, backToSuperAdmin, isSuperAdmin, currentView, handleLogout } = useApp();
   const [globalSearch, setGlobalSearch] = React.useState('');
+
+  // 0. Public Customer Payment Gateway & Live Delivery Tracker (accessible without authentication)
+  const pathname = window.location.pathname;
+  const searchParams = new URLSearchParams(window.location.search);
+  if (pathname.startsWith('/pay/')) {
+    const invoiceId = decodeURIComponent(pathname.replace(/^\/pay\//, ''));
+    return <PublicPaymentPage invoiceId={invoiceId} />;
+  }
+  if (searchParams.get('pay')) {
+    return <PublicPaymentPage invoiceId={searchParams.get('pay')} />;
+  }
+  if (pathname.startsWith('/track/')) {
+    const orderId = decodeURIComponent(pathname.replace(/^\/track\//, ''));
+    return <CustomerTrackingPortal orderIdParam={orderId} />;
+  }
+  if (searchParams.get('track')) {
+    return <CustomerTrackingPortal orderIdParam={searchParams.get('track')} />;
+  }
 
   // 1. If not logged in, render the login view
   if (!token || !user) {
     return <Login />;
+  }
+
+  const normalizedRole = (user && user.role || '').toString().toLowerCase().replace(/[-_]/g, '');
+
+  // 1.25 If delivery boy role, render DeliveryBoyApp
+  if (normalizedRole === 'deliveryboy' || normalizedRole === 'driver') {
+    return <DeliveryBoyApp token={token} user={user} handleLogout={handleLogout} />;
+  }
+
+  // 1.3 If staff or cashier role, render StaffApp
+  if (normalizedRole === 'staff' || normalizedRole === 'cashier') {
+    return <StaffApp token={token} user={user} handleLogout={handleLogout} />;
+  }
+
+  // 1.4 If accountant role, render AccountantApp
+  if (normalizedRole === 'accountant') {
+    return <AccountantApp token={token} user={user} handleLogout={handleLogout} />;
   }
 
   // 1.5 If user needs onboarding (profile + subscription), show onboarding
@@ -30,14 +87,12 @@ function AppContent() {
 
   // `isSuperAdmin` is provided by AppContext (normalizes role strings)
 
-
-
   return (
     <div className="app">
       {/* Global Sidebar (adapts automatically to regular vs super admin tabs) */}
       <Sidebar />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="app-content">
         {/* Simulating Tenant Session Warning Banner */}
         {viewOnly && (
           <div 
@@ -51,8 +106,7 @@ function AppContent() {
               justifyContent: 'space-between', 
               alignItems: 'center', 
               boxShadow: '0 4px 12px rgba(245,158,11,0.2)', 
-              zIndex: 1000, 
-              marginLeft: '250px' 
+              zIndex: 1000
             }}
           >
             <span>
@@ -81,7 +135,21 @@ function AppContent() {
 
         {/* Core Layout Routing */}
         {isSuperAdmin && !viewOnly ? (
-          // Master Admin views
+          currentView === 'shop-profile' ? <ShopProfileManagement /> : 
+          currentView === 'user-management' ? <UserManagement /> : 
+          currentView === 'global-staff' ? <GlobalStaff /> :
+          currentView === 'security-settings' ? <SecuritySettings /> :
+          currentView === 'roles' ? <RoleManagement /> :
+          currentView === 'master-data' ? <MasterDataManagement /> :
+          currentView === 'business-oversight' ? <BusinessOversight /> :
+          currentView === 'support-helpdesk' ? <SupportHelpdesk /> :
+          currentView === 'sa-team' ? <SuperAdminTeam /> :
+          currentView === 'security-audit' ? <SecurityAudit /> :
+          currentView === 'sa-data-management' ? <SADataManagement /> :
+          currentView === 'integrations' ? <IntegrationsAPI /> :
+          currentView === 'platform-reports' ? <PlatformReports /> :
+          currentView === 'sa-analytics' ? <SADashboard /> :
+          currentView === 'sa-announcements' ? <BroadcastAdmin /> :
           <SuperAdmin />
         ) : (
           // Regular Admin & simulated tenant views
@@ -90,12 +158,17 @@ function AppContent() {
             {/** render view based on currentView state (dashboard default) */}
             {(() => {
               switch (currentView) {
+                case 'invoices': return <Invoices />;
                 case 'delivery': return <Delivery />;
                 case 'barcodes': return <Barcodes />;
                 case 'reports': return <Reports />;
                 case 'offers': return <Offers />;
                 case 'notifications': return <Notifications />;
                 case 'data': return <DataManagement />;
+                case 'business': return <ShopProfileManagement />;
+                case 'staff': return <Staff />;
+                case 'subscription': return <Subscription />;
+                case 'settings': return <Settings />;
                 default: return <Dashboard globalSearch={globalSearch} />;
               }
             })()}

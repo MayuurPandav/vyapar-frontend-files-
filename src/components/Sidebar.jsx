@@ -48,37 +48,102 @@ export default function Sidebar() {
 
       <ul className="sidebar__nav" ref={containerRef}>
         {isSuperAdmin ? (
-          // Super Admin Navigation
+          // Streamlined Super Admin Navigation
           <>
+            <li style={{ marginTop: '4px', marginBottom: '8px', paddingLeft: '16px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Overview
+            </li>
             <li>
               <a className={`sidebar__link ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentView('dashboard')}>
-                <i className="fas fa-chart-line"></i> SA Dashboard
+                <i className="fas fa-chart-line"></i> Master Control
               </a>
             </li>
             <li>
-              <a className={`sidebar__link ${currentView === 'companies' ? 'active' : ''}`} onClick={() => setCurrentView('companies')}>
-                <i className="fas fa-building"></i> Manage Companies
+              <a className={`sidebar__link ${currentView === 'sa-analytics' ? 'active' : ''}`} onClick={() => setCurrentView('sa-analytics')}>
+                <i className="fas fa-chart-column"></i> Analytics & Metrics
               </a>
             </li>
             <li>
-              <a className={`sidebar__link ${currentView === 'users' ? 'active' : ''}`} onClick={() => setCurrentView('users')}>
-                <i className="fas fa-users-gear"></i> Global Users
+              <a className={`sidebar__link ${currentView === 'business-oversight' ? 'active' : ''}`} onClick={() => setCurrentView('business-oversight')}>
+                <i className="fas fa-chart-pie"></i> Business Oversight
               </a>
+            </li>
+
+            <li style={{ marginTop: '16px', marginBottom: '8px', paddingLeft: '16px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Tenants & Access
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'shops' ? 'active' : ''}`} onClick={() => setCurrentView('shops')}>
+                <i className="fas fa-store"></i> Shop & Tenant Management
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'user-management' ? 'active' : ''}`} onClick={() => setCurrentView('user-management')}>
+                <i className="fas fa-users-gear"></i> Global Users & Team
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'roles' ? 'active' : ''}`} onClick={() => setCurrentView('roles')}>
+                <i className="fas fa-user-shield"></i> Roles & Permissions
+              </a>
+            </li>
+
+            <li style={{ marginTop: '16px', marginBottom: '8px', paddingLeft: '16px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              SaaS Plans & Billing
             </li>
             <li>
               <a className={`sidebar__link ${currentView === 'plans' ? 'active' : ''}`} onClick={() => setCurrentView('plans')}>
-                <i className="fas fa-bolt"></i> SaaS Plans
+                <i className="fas fa-layer-group"></i> SaaS Subscription Plans
               </a>
             </li>
             <li>
               <a className={`sidebar__link ${currentView === 'payments' ? 'active' : ''}`} onClick={() => setCurrentView('payments')}>
-                <i className="fas fa-receipt"></i> Payment History
+                <i className="fas fa-receipt"></i> Payments & Revenue
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'coupons' ? 'active' : ''}`} onClick={() => setCurrentView('coupons')}>
+                <i className="fas fa-tags"></i> Coupons & Discounts
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'refunds' ? 'active' : ''}`} onClick={() => setCurrentView('refunds')}>
+                <i className="fas fa-undo"></i> Refund Requests
+              </a>
+            </li>
+
+            <li style={{ marginTop: '16px', marginBottom: '8px', paddingLeft: '16px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              System & Operations
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'master-data' ? 'active' : ''}`} onClick={() => setCurrentView('master-data')}>
+                <i className="fas fa-database"></i> Master Data & DB
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'security-audit' ? 'active' : ''}`} onClick={() => setCurrentView('security-audit')}>
+                <i className="fas fa-shield-alt"></i> Security & Audit Logs
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'integrations' ? 'active' : ''}`} onClick={() => setCurrentView('integrations')}>
+                <i className="fas fa-plug"></i> Integrations & APIs
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'sa-announcements' ? 'active' : ''}`} onClick={() => setCurrentView('sa-announcements')}>
+                <i className="fas fa-bullhorn"></i> Broadcast Announcements
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'support-helpdesk' ? 'active' : ''}`} onClick={() => setCurrentView('support-helpdesk')}>
+                <i className="fas fa-headset"></i> Support & Helpdesk
               </a>
             </li>
             <li>
               <a className={`sidebar__link ${currentView === 'settings' ? 'active' : ''}`} onClick={() => setCurrentView('settings')}>
-                  <i className="fas fa-cog"></i> System Settings
-                </a>
+                <i className="fas fa-cog"></i> System Configuration
+              </a>
             </li>
           </>
         ) : (
@@ -90,28 +155,8 @@ export default function Sidebar() {
               </a>
             </li>
             <li>
-              <a className={`sidebar__link ${currentView === 'business' ? 'active' : ''}`} onClick={() => setCurrentView('business')}>
-                <i className="fas fa-building"></i> Business Profile
-              </a>
-            </li>
-            <li>
               <a className={`sidebar__link ${currentView === 'sales' ? 'active' : ''}`} onClick={() => setCurrentView('sales')}>
                 <i className="fas fa-file-invoice-dollar"></i> Sales & Billing
-              </a>
-            </li>
-            <li>
-              <a className={`sidebar__link ${currentView === 'invoices' ? 'active' : ''}`} onClick={() => setCurrentView('invoices')}>
-                <i className="fas fa-receipt"></i> Invoices
-              </a>
-            </li>
-            <li>
-              <a className={`sidebar__link ${currentView === 'delivery' ? 'active' : ''}`} onClick={() => setCurrentView('delivery')}>
-                <i className="fas fa-truck"></i> Delivery
-              </a>
-            </li>
-            <li>
-              <a className={`sidebar__link ${currentView === 'barcodes' ? 'active' : ''}`} onClick={() => setCurrentView('barcodes')}>
-                <i className="fas fa-barcode"></i> Barcodes & QR
               </a>
             </li>
             <li>
@@ -135,11 +180,6 @@ export default function Sidebar() {
               </a>
             </li>
             <li>
-              <a className={`sidebar__link ${currentView === 'transactions' ? 'active' : ''}`} onClick={() => setCurrentView('transactions')}>
-                <i className="fas fa-right-left"></i> Transactions
-              </a>
-            </li>
-            <li>
               <a className={`sidebar__link ${currentView === 'gst' ? 'active' : ''}`} onClick={() => setCurrentView('gst')}>
                 <i className="fas fa-file-invoice"></i> GST & Taxes
               </a>
@@ -147,6 +187,41 @@ export default function Sidebar() {
             <li>
               <a className={`sidebar__link ${currentView === 'expenses' ? 'active' : ''}`} onClick={() => setCurrentView('expenses')}>
                 <i className="fas fa-money-bill-transfer"></i> Expenses
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'payments' ? 'active' : ''}`} onClick={() => setCurrentView('payments')}>
+                <i className="fas fa-hand-holding-dollar"></i> Payment Management
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'transactions' ? 'active' : ''}`} onClick={() => setCurrentView('transactions')}>
+                <i className="fas fa-right-left"></i> Accounting & Khata
+              </a>
+            </li>
+
+            {/* Additional Features / Utilities */}
+            <li style={{ marginTop: '16px', marginBottom: '8px', paddingLeft: '16px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Utilities & Admin
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'business' ? 'active' : ''}`} onClick={() => setCurrentView('business')}>
+                <i className="fas fa-building"></i> Business Profile
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'invoices' ? 'active' : ''}`} onClick={() => setCurrentView('invoices')}>
+                <i className="fas fa-receipt"></i> Invoices
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'delivery' ? 'active' : ''}`} onClick={() => setCurrentView('delivery')}>
+                <i className="fas fa-truck"></i> Delivery
+              </a>
+            </li>
+            <li>
+              <a className={`sidebar__link ${currentView === 'barcodes' ? 'active' : ''}`} onClick={() => setCurrentView('barcodes')}>
+                <i className="fas fa-barcode"></i> Barcodes & QR
               </a>
             </li>
             <li>

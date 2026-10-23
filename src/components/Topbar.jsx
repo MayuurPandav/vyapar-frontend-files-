@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import ThemeToggle from './ThemeToggle';
 
 export default function Topbar({ onSearch }) {
   const { user, syncStatus, currentView, setCurrentView, notifications, handleLogout, isSuperAdmin } = useApp();
@@ -35,9 +36,9 @@ export default function Topbar({ onSearch }) {
     recognition.onresult = (event) => {
       const cmd = event.results[0][0].transcript.toLowerCase();
       setListening(false);
-      
+
       const c = cmd.replace('please', '').replace('open', '').replace('go to', '').replace('dikhao', '').replace('chalo', '').trim();
-      
+
       if (c.includes('dashboard') || c.includes('overview') || c.includes('home') || c.includes('main')) {
         setCurrentView('dashboard');
       } else if (c.includes('sale') || c.includes('billing') || c.includes('invoice') || c.includes('becho')) {
@@ -137,19 +138,19 @@ export default function Topbar({ onSearch }) {
             onChange={handleSearchChange}
             style={{ paddingRight: '40px' }}
           />
-          <button 
-            id="voice-assistant-btn" 
-            title="AI Voice Assistant" 
+          <button
+            id="voice-assistant-btn"
+            title="AI Voice Assistant"
             onClick={handleVoiceAssistant}
-            style={{ 
-              position: 'absolute', 
-              right: '12px', 
-              top: '50%', 
-              transform: 'translateY(-50%)', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              color: listening ? '#ef4444' : 'var(--text-3)', 
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: listening ? '#ef4444' : 'var(--text-3)',
               padding: '4px',
               animation: listening ? 'pulseIcon 1.5s infinite ease-in-out' : 'none'
             }}
@@ -183,8 +184,8 @@ export default function Topbar({ onSearch }) {
                   ) : (
                     notifications.map((n, i) => (
                       <div key={i} style={{ borderRadius: '12px', padding: '12px', marginBottom: '10px', backgroundColor: n.type === 'warning' ? '#fff4e5' : '#eef6ff', border: `1px solid ${n.type === 'warning' ? '#fde8c3' : '#dbeafe'}` }}>
-                        <div style={{ fontWeight: 700, marginBottom: '6px' }}>{n.title}</div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-2)' }}>{n.body}</div>
+                        <div style={{ fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>{n.title}</div>
+                        <div style={{ fontSize: '13px', color: '#334155' }}>{n.body}</div>
                       </div>
                     ))
                   )}
@@ -193,6 +194,9 @@ export default function Topbar({ onSearch }) {
             )}
           </>
         )}
+
+        {/* Global Dual-Theme Toggle (Dark / Light) */}
+        <ThemeToggle style={{ marginRight: '10px' }} />
 
         {/* Profile Card & Dropdown */}
         <div className="topbar__profile" onClick={() => setDropdownOpen(!dropdownOpen)} style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>

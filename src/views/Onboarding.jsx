@@ -6,6 +6,7 @@ export default function Onboarding() {
   const [form, setForm] = useState({});
   const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [loading, setLoading] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [emailOtp, setEmailOtp] = useState('');
@@ -75,7 +76,7 @@ export default function Onboarding() {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user.username, planName: selectedPlan })
+        body: JSON.stringify({ username: user.username, planName: selectedPlan, paymentMethod })
       });
       if (res.ok) {
         const j = await res.json();
@@ -178,6 +179,9 @@ export default function Onboarding() {
                     const j = await res.json();
                     if (res.ok) {
                       setGstVerified(true);
+                      if (j.data && j.data.bizName) {
+                        setForm(prev => ({ ...prev, bizName: j.data.bizName }));
+                      }
                       if (j.authoritative) alert('GST verified with external provider'); else alert('GST format valid (no external provider configured)');
                     } else {
                       alert(j.message || 'GST verification failed');
@@ -240,6 +244,98 @@ export default function Onboarding() {
                 </div>
               </div>
             )) : <div>Loading plans...</div>}
+
+            {selectedPlan && (() => {
+              const matchedPlan = plans.find(p => p.name === selectedPlan);
+              const price = matchedPlan ? matchedPlan.price : 0;
+              return (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>
+                    Payment Method
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    {['UPI', 'Card', 'Net Banking'].map(method => (
+                      <button
+                        key={method}
+                        type="button"
+                        className={`btn ${paymentMethod === method ? 'btn--primary' : 'btn--outline'}`}
+                        style={{ flex: 1, padding: '8px 4px', fontSize: '12px', transition: 'all 0.2s ease' }}
+                        onClick={() => setPaymentMethod(method)}
+                      >
+                        {method === 'UPI' ? '📱 UPI' : method === 'Card' ? '💳 Card' : '🏦 Net Banking'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Dynamic payment form depending on paymentMethod */}
+                  <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginBottom: '12px' }}>
+                    {paymentMethod === 'Card' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(99, 91, 255, 0.08)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(99, 91, 255, 0.15)', fontSize: '11px', color: '#635bff', fontWeight: 600 }}>
+                          <i className="fab fa-stripe" style={{ fontSize: '18px' }}></i>
+                          <span>Stripe Sandbox Simulator</span>
+                        </div>
+                        <div className="fg" style={{ marginBottom: '8px' }}>
+                          <label style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>Card Email</label>
+                          <input type="email" className="fi" placeholder="billing@company.com" required defaultValue={user?.email || 'billing@company.com'} style={{ fontSize: '12px', padding: '8px', background: 'var(--bg-input)' }} />
+                        </div>
+                        <div className="fg">
+                          <label style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>Card Details</label>
+                          <input className="fi" placeholder="4242 4242 4242 4242" required maxLength={19} defaultValue="4242 4242 4242 4242" style={{ fontSize: '12px', padding: '8px', background: 'var(--bg-input)' }} />
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                            <input className="fi" placeholder="MM / YY" required maxLength={5} style={{ width: '80px', fontSize: '12px', padding: '8px', background: 'var(--bg-input)' }} defaultValue="12/29" />
+                            <input className="fi" placeholder="CVC" required maxLength={3} style={{ width: '80px', fontSize: '12px', padding: '8px', background: 'var(--bg-input)' }} defaultValue="123" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === 'UPI' && (
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', textAlign: 'left', background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=billing@vyapar&pn=Vyapar%20Licensing&am=${Math.round(price)}&cu=INR`)}`}
+                          alt="UPI QR Code" 
+                          style={{ width: '100px', height: '100px', borderRadius: '6px', border: '1px solid var(--border)', background: '#fff' }}
+                        />
+                        <div style={{ fontSize: '12px', color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(51, 151, 226, 0.08)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(51, 151, 226, 0.15)', fontSize: '10px', color: '#3397e2', fontWeight: 600, width: 'fit-content' }}>
+                            <i className="fas fa-credit-card"></i>
+                            <span>Razorpay UPI Sandbox</span>
+                          </div>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-1)' }}>Scan to Pay with UPI App</strong>
+                          <span>Amount: <b>₹{price.toFixed(2)}</b></span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-3)' }}>VPA: billing@vyapar</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === 'Net Banking' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(16, 185, 129, 0.08)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
+                          <i className="fas fa-building-columns"></i>
+                          <span>Net Banking Gateway</span>
+                        </div>
+                        <div className="fg">
+                          <label style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>Select Bank</label>
+                          <select className="fi" style={{ fontSize: '12px', padding: '8px', background: 'var(--bg-input)' }} defaultValue="SBI">
+                            <option value="SBI">State Bank of India</option>
+                            <option value="HDFC">HDFC Bank</option>
+                            <option value="ICICI">ICICI Bank</option>
+                            <option value="AXIS">Axis Bank</option>
+                            <option value="KOTAK">Kotak Mahindra Bank</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', padding: '10px 14px', borderRadius: '8px', border: '1px dashed var(--border)' }}>
+                    <i className="fas fa-circle-info" style={{ color: '#4f46e5' }}></i>
+                    <span>After payment, the plan will be activated.</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{ marginTop: 12 }}>
               <button className="btn btn--primary" onClick={handleSubscribe} disabled={loading || !profileSaved || !selectedPlan}>{loading ? 'Processing...' : (!profileSaved ? 'Save profile first' : 'Activate & Continue')}</button>

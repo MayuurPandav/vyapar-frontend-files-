@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, Send, Smartphone, Check, ExternalLink, Loader2 } from 'lucide-react';
+import { X, MessageSquare, Send, Smartphone, Mail, ExternalLink, Loader2, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ShareInvoiceModal({ invoice, customer, business, onClose }) {
+  const [activeTab, setActiveTab] = useState('whatsapp'); // 'whatsapp' | 'email'
   const [phone, setPhone] = useState(
     customer?.phone || invoice?.phone || invoice?.customerPhone || ''
   );
+  const [email, setEmail] = useState(
+    customer?.email || invoice?.customerEmail || invoice?.email || ''
+  );
   const [customNote, setCustomNote] = useState('');
-  const [loadingAction, setLoadingAction] = useState(null); // 'api-wa' | 'sms' | null
+  const [loadingAction, setLoadingAction] = useState(null); // 'api-wa' | 'sms' | 'email' | null
 
   if (!invoice) return null;
 
@@ -79,7 +83,7 @@ export default function ShareInvoiceModal({ invoice, customer, business, onClose
       const data = await res.json();
       if (data.status === 'success') {
         if (data.result?.dryrun) {
-          toast.success('Dry-run WhatsApp simulated! (API keys not set, link prepared)');
+          toast.success('Dry-run WhatsApp simulated! (Link prepared)');
           if (data.deepLink) {
             window.open(data.deepLink, '_blank');
           }
@@ -132,18 +136,50 @@ export default function ShareInvoiceModal({ invoice, customer, business, onClose
     }
   };
 
+  // 4. Send Transactional Email with PDF (SendGrid / SMTP)
+  const handleSendEmail = async () => {
+    if (!email.trim()) {
+      toast.error('Please enter a valid recipient email address');
+      return;
+    }
+    setLoadingAction('email');
+    try {
+      const res = await fetch('/api/notifications/email/send-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: invoice._id || invoice.id,
+          invoice,
+          email: email.trim(),
+          customNote: customNote.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        toast.success('Tax invoice with PDF emailed to ' + email.trim());
+        onClose();
+      } else {
+        toast.error(data.message || 'Failed to send invoice email');
+      }
+    } catch (err) {
+      toast.error('Network error communicating with Email service');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   return (
     <div className="overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, background: 'rgba(0,0,0,0.65)' }}>
-      <div className="card" style={{ maxWidth: '480px', width: '92%', maxHeight: '92vh', overflowY: 'auto', padding: '24px' }}>
+      <div className="card" style={{ maxWidth: '500px', width: '92%', maxHeight: '92vh', overflowY: 'auto', padding: '24px' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#25D366' }}>💬</span> Share Invoice #{invoiceNumber}
+              <span>📢</span> Share Invoice #{invoiceNumber}
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--text-3)', margin: '4px 0 0 0' }}>
-              Send real-time digital bill & payment link to customer
+              Send real-time digital bill, payment link & PDF
             </p>
           </div>
           <button onClick={onClose} className="btn--icon" style={{ cursor: 'pointer', background: 'transparent', border: 'none' }}>
@@ -151,147 +187,270 @@ export default function ShareInvoiceModal({ invoice, customer, business, onClose
           </button>
         </div>
 
-        {/* Customer & Phone info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
-              Recipient Phone Number (WhatsApp / SMS)
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <span style={{ padding: '8px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '13px', fontWeight: 600, color: 'var(--text-2)' }}>
-                +91
-              </span>
-              <input
-                type="tel"
-                className="input"
-                placeholder="10-digit mobile number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{ flex: 1, padding: '8px 12px', fontSize: '14px' }}
-              />
-            </div>
-            {customerName && (
-              <span style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px', display: 'block' }}>
-                Customer: <strong>{customerName}</strong>
-              </span>
-            )}
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
-              Optional Note / Reminder Note
-            </label>
-            <input
-              type="text"
-              className="input"
-              placeholder="e.g. Please clear the balance by Friday"
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', fontSize: '13px' }}
-            />
-          </div>
-
-          {/* Message Preview Box */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
-              Message Preview
-            </label>
-            <pre style={{
-              background: 'var(--bg-input, #f3f4f6)',
-              padding: '12px',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              fontSize: '11px',
-              color: 'var(--text-1)',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              maxHeight: '140px',
-              overflowY: 'auto',
-              fontFamily: 'monospace'
-            }}>
-              {generateMessageText()}
-            </pre>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
-          
-          {/* 1. Direct WhatsApp */}
+        {/* Channel Switcher Tabs */}
+        <div style={{ display: 'flex', background: 'var(--bg-input, #f1f5f9)', padding: '4px', borderRadius: '8px', marginBottom: '18px' }}>
           <button
-            onClick={handleDirectWhatsApp}
-            className="btn"
+            type="button"
+            onClick={() => setActiveTab('whatsapp')}
             style={{
-              background: '#25D366',
-              color: '#ffffff',
-              borderColor: 'transparent',
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
               fontWeight: 600,
-              padding: '10px 14px',
+              fontSize: '13px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '6px',
+              background: activeTab === 'whatsapp' ? '#ffffff' : 'transparent',
+              color: activeTab === 'whatsapp' ? 'var(--text-1)' : 'var(--text-3)',
+              boxShadow: activeTab === 'whatsapp' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <MessageSquare style={{ width: 16, height: 16 }} />
-            Open in WhatsApp (One-Click Web/App)
-            <ExternalLink style={{ width: 14, height: 14, marginLeft: 'auto' }} />
+            <MessageSquare style={{ width: 15, height: 15, color: '#25D366' }} /> WhatsApp & SMS
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('email')}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              background: activeTab === 'email' ? '#ffffff' : 'transparent',
+              color: activeTab === 'email' ? 'var(--text-1)' : 'var(--text-3)',
+              boxShadow: activeTab === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <Mail style={{ width: 15, height: 15, color: '#2563eb' }} /> Email (PDF Attached)
+          </button>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {/* 2. Automated WhatsApp Cloud API */}
+        {/* TAB 1: WhatsApp & SMS */}
+        {activeTab === 'whatsapp' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
+                Recipient Phone Number (WhatsApp / SMS)
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ padding: '8px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '13px', fontWeight: 600, color: 'var(--text-2)' }}>
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  className="input"
+                  placeholder="10-digit mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  style={{ flex: 1, padding: '8px 12px', fontSize: '14px' }}
+                />
+              </div>
+              {customerName && (
+                <span style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px', display: 'block' }}>
+                  Customer: <strong>{customerName}</strong>
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
+                Optional Note / Payment Deadline
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Please clear the balance by Friday"
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '13px' }}
+              />
+            </div>
+
+            {/* Message Preview Box */}
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
+                Message Preview
+              </label>
+              <pre style={{
+                background: 'var(--bg-input, #f3f4f6)',
+                padding: '12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                fontSize: '11px',
+                color: 'var(--text-1)',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '130px',
+                overflowY: 'auto',
+                fontFamily: 'monospace'
+              }}>
+                {generateMessageText()}
+              </pre>
+            </div>
+
+            {/* Action Buttons for WhatsApp & SMS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              <button
+                onClick={handleDirectWhatsApp}
+                className="btn"
+                style={{
+                  background: '#25D366',
+                  color: '#ffffff',
+                  borderColor: 'transparent',
+                  fontWeight: 600,
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <MessageSquare style={{ width: 16, height: 16 }} />
+                Open in WhatsApp (One-Click Web/App)
+                <ExternalLink style={{ width: 14, height: 14, marginLeft: 'auto' }} />
+              </button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button
+                  onClick={handleAutomatedWhatsApp}
+                  disabled={loadingAction !== null}
+                  className="btn btn--primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    padding: '10px 8px'
+                  }}
+                >
+                  {loadingAction === 'api-wa' ? (
+                    <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Send style={{ width: 14, height: 14 }} />
+                  )}
+                  WhatsApp API
+                </button>
+
+                <button
+                  onClick={handleSendSMS}
+                  disabled={loadingAction !== null}
+                  className="btn"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    padding: '10px 8px'
+                  }}
+                >
+                  {loadingAction === 'sms' ? (
+                    <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Smartphone style={{ width: 14, height: 14 }} />
+                  )}
+                  Send SMS
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: Email (SendGrid / SMTP with PDF) */}
+        {activeTab === 'email' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
+                Recipient Customer Email Address
+              </label>
+              <input
+                type="email"
+                className="input"
+                placeholder="customer@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', fontSize: '14px' }}
+              />
+              {customerName && (
+                <span style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px', display: 'block' }}>
+                  Customer: <strong>{customerName}</strong>
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
+                Custom Message / Personal Note (Optional)
+              </label>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="e.g. Thank you for your continued partnership. Kindly find attached the official invoice."
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '13px' }}
+              />
+            </div>
+
+            <div style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '8px',
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <FileText style={{ width: 28, height: 28, color: '#2563eb', flexShrink: 0 }} />
+              <div style={{ fontSize: '12px', color: '#1e40af' }}>
+                <strong>Official PDF Attached Automatically:</strong>
+                <div>invoice-{invoiceNumber}.pdf will be generated and attached directly to the email via SendGrid.</div>
+              </div>
+            </div>
+
             <button
-              onClick={handleAutomatedWhatsApp}
+              onClick={handleSendEmail}
               disabled={loadingAction !== null}
               className="btn btn--primary"
               style={{
+                width: '100%',
+                padding: '12px',
+                fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                padding: '10px 8px'
+                gap: '8px',
+                marginTop: '6px'
               }}
             >
-              {loadingAction === 'api-wa' ? (
-                <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+              {loadingAction === 'email' ? (
+                <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
               ) : (
-                <Send style={{ width: 14, height: 14 }} />
+                <Mail style={{ width: 16, height: 16 }} />
               )}
-              WhatsApp API
-            </button>
-
-            {/* 3. Fast2SMS / Twilio SMS */}
-            <button
-              onClick={handleSendSMS}
-              disabled={loadingAction !== null}
-              className="btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                padding: '10px 8px'
-              }}
-            >
-              {loadingAction === 'sms' ? (
-                <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <Smartphone style={{ width: 14, height: 14 }} />
-              )}
-              Send SMS
+              Send Email with Invoice PDF
             </button>
           </div>
+        )}
 
-          <button
-            onClick={onClose}
-            className="btn"
-            style={{ marginTop: '4px', justifyContent: 'center' }}
-          >
-            Cancel
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="btn"
+          style={{ width: '100%', marginTop: '6px', justifyContent: 'center' }}
+        >
+          Cancel
+        </button>
 
       </div>
     </div>

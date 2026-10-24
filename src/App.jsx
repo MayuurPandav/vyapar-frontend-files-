@@ -35,6 +35,7 @@ import Staff from './views/Staff';
 import Subscription from './views/Subscription';
 import Settings from './views/Settings';
 import CustomerTrackingPortal from './views/CustomerTrackingPortal';
+import PublicPaymentPage from './views/PublicPaymentPage';
 
 function AppContent() {
   const { token, user, viewOnly, backToSuperAdmin, isSuperAdmin, currentView, handleLogout } = useApp();

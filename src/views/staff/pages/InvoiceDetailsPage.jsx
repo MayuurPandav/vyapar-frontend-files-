@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Download, Printer, Edit3, MessageSquare, Copy, Receipt, PhoneCall } from 'lucide-react';
+import { Download, Printer, Edit3, MessageSquare, Copy, Receipt, PhoneCall, CreditCard } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode.react';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import ThermalReceiptModal from '../components/ThermalReceiptModal';
 import ShareInvoiceModal from '../components/ShareInvoiceModal';
 import CallCustomerModal from '../components/CallCustomerModal';
+import CollectPaymentModal from '../components/CollectPaymentModal';
 
 const InvoiceDetailsPage = () => {
   const { id } = useParams();
@@ -23,6 +24,7 @@ const InvoiceDetailsPage = () => {
   const [showThermalModal, setShowThermalModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const business = {
     name: 'Vyapar Retail Pvt Ltd',
@@ -139,6 +141,15 @@ const InvoiceDetailsPage = () => {
           >
             <PhoneCall style={{ width: 16, height: 16 }} /> Call Customer
           </button>
+          {balanceDue > 0 && (
+            <button 
+              onClick={() => setShowPaymentModal(true)} 
+              className="btn"
+              style={{ background: '#16a34a', color: '#fff', borderColor: 'transparent', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+            >
+              <CreditCard style={{ width: 16, height: 16 }} /> Collect Payment
+            </button>
+          )}
           {canEdit && (
             <button onClick={() => navigate(`/billing/edit/${id}`)} className="btn">
               <Edit3 style={{ width: 16, height: 16 }} /> Edit Invoice
@@ -202,7 +213,16 @@ const InvoiceDetailsPage = () => {
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Counter / POS</span><span>{invoice.counterName || 'Main POS'}</span></div>
             </div>
-            {invoice.paymentMode === 'UPI' && (
+            {balanceDue > 0 && (
+              <div style={{ marginTop: 16, padding: 12, background: 'var(--body-bg, #ffffff)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', margin: '0 0 8px 0' }}>📲 SCAN TO PAY ₹{balanceDue.toLocaleString()}</p>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <QRCode value={`upi://pay?pa=vyapar@upi&pn=${encodeURIComponent(business.name)}&am=${balanceDue.toFixed(2)}&tr=${encodeURIComponent(invoice.invoiceNumber || id)}&tn=${encodeURIComponent(`Bill #${invoice.invoiceNumber || id}`)}&cu=INR`} size={110} />
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--text-3)', margin: '6px 0 0 0' }}>Google Pay • PhonePe • Paytm</p>
+              </div>
+            )}
+            {invoice.paymentMode === 'UPI' && balanceDue <= 0 && (
               <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <QRCode value={`upi://pay?pa=vyapar@upi&pn=${encodeURIComponent(invoice.customerName)}&am=${totalAmount}`} size={120} />
               </div>
@@ -315,6 +335,18 @@ const InvoiceDetailsPage = () => {
           amountDue={balanceDue}
           agentPhone={user?.phone || '9322372105'}
           onClose={() => setShowCallModal(false)}
+        />
+      )}
+
+      {showPaymentModal && (
+        <CollectPaymentModal
+          invoice={invoice}
+          business={business}
+          onPaymentSuccess={() => {
+            toast.success('Invoice settled successfully!');
+            setTimeout(() => window.location.reload(), 800);
+          }}
+          onClose={() => setShowPaymentModal(false)}
         />
       )}
     </div>

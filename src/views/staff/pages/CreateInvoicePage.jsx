@@ -38,9 +38,12 @@ const CreateInvoicePage = () => {
   const [scannerError, setScannerError] = useState('');
   const [manualBarcode, setManualBarcode] = useState('');
   const [hoveredProductId, setHoveredProductId] = useState(null);
-  const [highlightRowId, setHighlightRowId] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
-  // barcodeQuery removed; use manualBarcode in scanner modal
+  // AI Smart Receipt & Bill OCR states
+  const [showAiScannerModal, setShowAiScannerModal] = useState(false);
+  const [isScanningAiReceipt, setIsScanningAiReceipt] = useState(false);
+  const [aiScanProgress, setAiScanProgress] = useState('');
+  const receiptFileInputRef = useRef(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [customerId, setCustomerId] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -263,19 +266,110 @@ const CreateInvoicePage = () => {
     return () => stopScanner();
   }, [showScannerModal]);
 
-  const handleAddByBarcode = (query) => {
+  const handleAddByBarcode = async (query) => {
     const q = (query || '').trim();
     if (!q) {
       toast.error('Enter a barcode');
       return;
     }
     const found = products.find((product) => product.barcode === q || product.sku === q || (product.productName || product.name || '').toLowerCase() === q.toLowerCase());
-    if (!found) {
-      toast.error('No product found for that barcode or SKU');
-      setShowManualItemForm(true);
+    if (found) {
+      handleAddProduct(found);
       return;
     }
-    handleAddProduct(found);
+
+    // Auto-Lookup from Global Barcode & Local DB API!
+    const toastId = toast.loading(`Looking up barcode ${q}...`);
+    try {
+      const res = await fetch(`/api/barcodes/lookup/${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.status === 'success' && data.found && data.product) {
+        toast.success(`Found: ${data.product.name} (${data.source})`, { id: toastId });
+        const newProductItem = {
+          _id: data.product.id || `global-${Date.now()}`,
+          productName: data.product.name,
+          name: data.product.name,
+          price: data.product.price || data.product.mrp || 100,
+          stock: data.product.stock || 100,
+          barcode: data.product.barcode || q,
+          sku: data.product.sku || q,
+          brand: data.product.brand || 'General',
+          category: data.product.category || 'Retail Goods',
+          gstRate: 18
+        };
+        handleAddProduct(newProductItem);
+        if (typeof addProduct === 'function') {
+          try { addProduct(newProductItem); } catch (e) {}
+        }
+      } else {
+        toast.error(`Barcode ${q} not found in inventory or global catalog`, { id: toastId });
+        setShowManualItemForm(true);
+      }
+    } catch (err) {
+      toast.error('Barcode lookup failed: ' + err.message, { id: toastId });
+      setShowManualItemForm(true);
+    }
+  };
+
+  const handleAiReceiptUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanningAiReceipt(true);
+    setAiScanProgress('Uploading bill image...');
+    const formData = new FormData();
+    formData.append('receipt', file);
+
+    try {
+      setAiScanProgress('AI Vision analyzing vendor, items, quantities, and totals...');
+      const res = await fetch('/api/invoices/scan-receipt', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || 'Failed to parse receipt');
+      }
+
+      const receipt = data.data;
+      toast.success(`Extracted ${receipt.items?.length || 0} items from ${receipt.vendorName}!`);
+
+      // 1. Fill vendor / customer info
+      if (receipt.vendorName) {
+        setCustomerSearch(receipt.vendorName);
+        setNewCustomer(prev => ({ ...prev, name: receipt.vendorName }));
+      }
+      if (receipt.date) {
+        setBillDate(receipt.date);
+      }
+
+      // 2. Add extracted line items
+      if (Array.isArray(receipt.items) && receipt.items.length > 0) {
+        const mappedProducts = receipt.items.map((it, idx) => ({
+          productId: `ocr-item-${Date.now()}-${idx}`,
+          name: it.name,
+          productName: it.name,
+          quantity: it.quantity || 1,
+          price: it.price || it.amount || 100,
+          amount: it.amount || ((it.quantity || 1) * (it.price || 100)),
+          discount: 0,
+          discountAmount: 0,
+          gstRate: 18,
+          taxAmount: 0
+        }));
+
+        setSelectedProducts(prev => [...prev, ...mappedProducts]);
+      }
+
+      setShowAiScannerModal(false);
+    } catch (err) {
+      toast.error('AI Receipt Scan Error: ' + err.message);
+    } finally {
+      setIsScanningAiReceipt(false);
+      setAiScanProgress('');
+      if (receiptFileInputRef.current) receiptFileInputRef.current.value = '';
+    }
   };
 
   const startScanner = async () => {
@@ -720,14 +814,32 @@ const CreateInvoicePage = () => {
             </div>
 
             {/* Quick Action Buttons */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setShowManualItemForm(true)} className="btn" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setShowManualItemForm(true)} className="btn" style={{ flex: 1, minWidth: 110, justifyContent: 'center', cursor: 'pointer' }}>
                 <Plus style={{ width: 16, height: 16 }} />
                 Add Manually
               </button>
-              <button type="button" onClick={() => setShowNewProductModal(true)} className="btn" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setShowNewProductModal(true)} className="btn" style={{ flex: 1, minWidth: 110, justifyContent: 'center', cursor: 'pointer' }}>
                 <PlusCircle style={{ width: 16, height: 16 }} />
                 New Product
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setShowAiScannerModal(true)} 
+                className="btn" 
+                style={{ 
+                  flex: 1, 
+                  minWidth: 140, 
+                  justifyContent: 'center', 
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                }}
+              >
+                ✨ AI Scan Bill
               </button>
             </div>
           </div>
@@ -755,6 +867,88 @@ const CreateInvoicePage = () => {
                     </div>
                     {scannerError && <div style={{ marginTop: 12, fontSize: 13, color: 'var(--red)' }}>{scannerError}</div>}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Smart Receipt & Bill OCR Modal */}
+          {showAiScannerModal && (
+            <div className="overlay" style={{ display: 'block', zIndex: 1100 }}>
+              <div className="modal" style={{ display: 'block', maxWidth: 540, borderRadius: '16px', overflow: 'hidden' }}>
+                <div className="modal__top" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #3b82f6)', display: 'grid', placeItems: 'center', color: '#fff' }}>
+                      <span style={{ fontSize: 18 }}>🤖</span>
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800 }}>AI Bill & Receipt Scanner</h3>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-3)' }}>Snap or upload any paper invoice to auto-extract items</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowAiScannerModal(false)} className="btn btn--sm">Close</button>
+                </div>
+
+                <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {isScanningAiReceipt ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: '16px', textAlign: 'center' }}>
+                      <div style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        border: '4px solid rgba(99, 102, 241, 0.2)',
+                        borderTopColor: '#6366f1',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Reading Invoice Details...</h4>
+                        <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#6366f1', fontWeight: 600 }}>{aiScanProgress}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div 
+                        onClick={() => receiptFileInputRef.current?.click()}
+                        style={{
+                          border: '2px dashed var(--border)',
+                          borderRadius: '12px',
+                          padding: '36px 20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '12px',
+                          cursor: 'pointer',
+                          background: 'var(--bg-input)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(99, 102, 241, 0.1)', display: 'grid', placeItems: 'center', color: '#6366f1', fontSize: '24px' }}>
+                          📸
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <strong style={{ fontSize: '15px', color: 'var(--text-1)' }}>Click to upload or take a photo of physical bill</strong>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-3)' }}>Supports JPEG, PNG, WebP & camera captures</p>
+                        </div>
+                      </div>
+
+                      <input 
+                        type="file" 
+                        ref={receiptFileInputRef}
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleAiReceiptUpload}
+                        style={{ display: 'none' }}
+                      />
+
+                      <div style={{ background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '10px', padding: '12px 16px', fontSize: '12px', color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontWeight: 800, color: '#3b82f6' }}>✨ Intelligent Neural Extraction:</span>
+                        <span>• Automatically identifies Supplier / Vendor Name & Bill Date</span>
+                        <span>• Parses each line item with quantity, unit rate, and total</span>
+                        <span>• Fills billing cart automatically without manual typing!</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

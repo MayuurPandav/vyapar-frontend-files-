@@ -30,6 +30,12 @@ export default function Dashboard({
   const [enteredOtp, setEnteredOtp] = useState(['', '', '', '', '', ''])
   const [codPaymentMethod, setCodPaymentMethod] = useState('cash')
 
+  // Live GPS Telemetry Broadcast States
+  const [isBroadcastingGps, setIsBroadcastingGps] = useState(false)
+  const [gpsCoordinates, setGpsCoordinates] = useState(null)
+  const [lastGpsSentAt, setLastGpsSentAt] = useState(null)
+  const gpsWatchIdRef = useRef(null)
+
   const fileInputRef = useRef(null)
 
   const selectedDelivery = deliveries.find(d => d._id === selectedDeliveryId)
@@ -82,6 +88,82 @@ export default function Dashboard({
     const nextInput = document.getElementById(`otp-dash-${nextFocusIndex}`)
     if (nextInput) nextInput.focus()
   }
+
+  // Live GPS Broadcast functions
+  const sendGpsUpdate = async (coords) => {
+    try {
+      const payload = {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        speed: coords.speed || 0,
+        heading: coords.heading || 0,
+        accuracy: coords.accuracy || 10,
+        orderId: selectedDelivery?.orderId
+      }
+      await requestJson(`${apiBase}/location/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      setGpsCoordinates({
+        lat: coords.latitude.toFixed(5),
+        lng: coords.longitude.toFixed(5),
+        accuracy: Math.round(coords.accuracy || 10)
+      })
+      setLastGpsSentAt(new Date().toLocaleTimeString())
+    } catch (err) {
+      console.warn('[GPS Broadcast Notice]', err.message)
+    }
+  }
+
+  const toggleGpsBroadcast = () => {
+    if (isBroadcastingGps) {
+      if (gpsWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current)
+        gpsWatchIdRef.current = null
+      }
+      setIsBroadcastingGps(false)
+      triggerToast("🛰️ Live GPS Broadcasting Stopped", "info")
+    } else {
+      if (!navigator.geolocation) {
+        triggerToast("Geolocation is not supported by your browser/device", "error")
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendGpsUpdate(pos.coords)
+          setIsBroadcastingGps(true)
+          triggerToast("🛰️ Live GPS Sharing Active! Customers can track you.", "success")
+        },
+        (err) => {
+          triggerToast(`GPS Permission Notice: ${err.message}`, "error")
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+
+      let lastSent = 0
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const now = Date.now()
+          if (now - lastSent >= 8000) {
+            lastSent = now
+            sendGpsUpdate(pos.coords)
+          }
+        },
+        (err) => console.warn('[GPS Watch Warning]', err.message),
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      )
+      gpsWatchIdRef.current = watchId
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (gpsWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current)
+      }
+    }
+  }, [])
 
   // Status Translators
   const translateStatus = (status) => {
@@ -945,6 +1027,107 @@ export default function Dashboard({
               {t('initiateReturn')}
             </button>
           )}
+
+          {/* Live GPS Broadcasting to Customer Radar */}
+          <div style={{
+            background: isBroadcastingGps ? 'rgba(16, 185, 129, 0.08)' : 'var(--card-bg-hover)',
+            border: `1.5px solid ${isBroadcastingGps ? '#10b981' : 'var(--border-color)'}`,
+            borderRadius: '10px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            transition: 'all 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: isBroadcastingGps ? '#10b981' : '#64748b',
+                  boxShadow: isBroadcastingGps ? '0 0 10px #10b981' : 'none'
+                }}></span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-color)' }}>
+                  {isBroadcastingGps ? 'Live GPS Sharing Active' : 'Live GPS Satellite Radar'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleGpsBroadcast}
+                style={{
+                  background: isBroadcastingGps ? '#ef4444' : '#10b981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {isBroadcastingGps ? 'Stop GPS' : '🛰️ Start GPS Sharing'}
+              </button>
+            </div>
+
+            {isBroadcastingGps && gpsCoordinates && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--muted)', background: 'var(--body-bg)', padding: '6px 10px', borderRadius: '6px' }}>
+                <span>Lat: {gpsCoordinates.lat}, Lng: {gpsCoordinates.lng} (±{gpsCoordinates.accuracy}m)</span>
+                <span style={{ color: '#10b981', fontWeight: 700 }}>Updated {lastGpsSentAt}</span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      pos => {
+                        sendGpsUpdate(pos.coords)
+                        triggerToast("📍 Sent immediate GPS ping to tracking radar!", "success")
+                      },
+                      err => triggerToast(err.message, "error")
+                    )
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  minHeight: '32px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--body-bg)',
+                  color: 'var(--text-color)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                📍 Ping Position Now
+              </button>
+              <a
+                href={`/track/order/${selectedDelivery?.orderId || selectedDelivery?._id}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  flex: 1,
+                  minHeight: '32px',
+                  borderRadius: '6px',
+                  border: '1px solid #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  color: '#38bdf8',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none'
+                }}
+              >
+                🗺️ View Customer Radar
+              </a>
+            </div>
+          </div>
 
           {/* External Google maps directions url redirects */}
           <a 

@@ -35,59 +35,66 @@ export default function CustomerTrackingPortal({ orderIdParam }) {
     };
 
     fetchTrackingData();
-    const interval = setInterval(fetchTrackingData, 10000); // Polling every 10s
+    const interval = setInterval(fetchTrackingData, 5000); // Polling every 5s for live radar
     return () => clearInterval(interval);
   }, [orderId]);
 
-  // Leaflet Map Initialization
+  // Leaflet Map Initialization and Realtime Movement
   useEffect(() => {
-    if (order && mapContainerRef.current && window.L && !mapRef.current) {
+    if (order && mapContainerRef.current && window.L) {
       const storeLoc = order.locations?.store || { lat: 12.9716, lng: 77.5946 };
       const custLoc = order.locations?.customer || { lat: 12.9352, lng: 77.6245 };
       const driverLoc = order.locations?.driver || storeLoc;
 
-      const map = window.L.map(mapContainerRef.current).setView([driverLoc.lat, driverLoc.lng], 13);
-      mapRef.current = map;
+      if (!mapRef.current) {
+        const map = window.L.map(mapContainerRef.current).setView([driverLoc.lat, driverLoc.lng], 13);
+        mapRef.current = map;
 
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-      // Custom Icon Creators
-      const createCustomIcon = (bgColor, iconClass) => {
-        return window.L.divIcon({
-          className: 'custom-leaflet-marker',
-          html: `<div style="background: ${bgColor}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px solid #fff;"><i class="fas ${iconClass}" style="font-size: 16px;"></i></div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
-      };
+        // Custom Icon Creators
+        const createCustomIcon = (bgColor, iconClass) => {
+          return window.L.divIcon({
+            className: 'custom-leaflet-marker',
+            html: `<div style="background: ${bgColor}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px solid #fff;"><i class="fas ${iconClass}" style="font-size: 16px;"></i></div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+          });
+        };
 
-      // Store Marker
-      window.L.marker([storeLoc.lat, storeLoc.lng], {
-        icon: createCustomIcon('#3b82f6', 'fa-store')
-      }).addTo(map).bindPopup(`<b>${storeLoc.name || 'Store'}</b><br/>Merchant Fulfillment Warehouse`);
+        // Store Marker
+        window.L.marker([storeLoc.lat, storeLoc.lng], {
+          icon: createCustomIcon('#3b82f6', 'fa-store')
+        }).addTo(map).bindPopup(`<b>${storeLoc.name || 'Store'}</b><br/>Merchant Fulfillment Warehouse`);
 
-      // Customer Marker
-      window.L.marker([custLoc.lat, custLoc.lng], {
-        icon: createCustomIcon('#10b981', 'fa-house-user')
-      }).addTo(map).bindPopup(`<b>${order.customerName}</b><br/>${order.deliveryAddress}`);
+        // Customer Marker
+        window.L.marker([custLoc.lat, custLoc.lng], {
+          icon: createCustomIcon('#10b981', 'fa-house-user')
+        }).addTo(map).bindPopup(`<b>${order.customerName}</b><br/>${order.deliveryAddress}`);
 
-      // Driver Live Marker
-      const driverMarker = window.L.marker([driverLoc.lat, driverLoc.lng], {
-        icon: createCustomIcon('#f59e0b', 'fa-motorcycle')
-      }).addTo(map).bindPopup(`<b>${order.driver?.fullName || 'Delivery Partner'}</b><br/>${order.driver?.vehicleNumber || 'En Route'}`);
-      driverMarkerRef.current = driverMarker;
+        // Driver Live Marker
+        const driverMarker = window.L.marker([driverLoc.lat, driverLoc.lng], {
+          icon: createCustomIcon('#f59e0b', 'fa-motorcycle')
+        }).addTo(map).bindPopup(`<b>${order.driver?.fullName || 'Delivery Partner'}</b><br/>${order.driver?.vehicleNumber || 'En Route'}`);
+        driverMarkerRef.current = driverMarker;
 
-      // Draw Route Polyline
-      const polyline = window.L.polyline([
-        [storeLoc.lat, storeLoc.lng],
-        [driverLoc.lat, driverLoc.lng],
-        [custLoc.lat, custLoc.lng]
-      ], { color: '#6366f1', weight: 4, opacity: 0.8, dashArray: '8, 8' }).addTo(map);
+        // Draw Route Polyline
+        const polyline = window.L.polyline([
+          [storeLoc.lat, storeLoc.lng],
+          [driverLoc.lat, driverLoc.lng],
+          [custLoc.lat, custLoc.lng]
+        ], { color: '#6366f1', weight: 4, opacity: 0.8, dashArray: '8, 8' }).addTo(map);
 
-      map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+        map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+      } else {
+        // Map is already initialized: smoothly update driver position in real time!
+        if (driverMarkerRef.current && driverLoc.lat && driverLoc.lng) {
+          driverMarkerRef.current.setLatLng([driverLoc.lat, driverLoc.lng]);
+        }
+      }
     }
   }, [order]);
 
@@ -154,8 +161,14 @@ export default function CustomerTrackingPortal({ orderIdParam }) {
             </div>
             {order.status === 'Out for delivery' && (
               <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', padding: '12px 20px', borderRadius: '12px', textAlign: 'center', color: '#fff', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)' }}>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, opacity: 0.9 }}>Estimated Arrival</div>
-                <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '2px' }}>12 - 15 Mins</div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, opacity: 0.9, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  {order.isLiveGps && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff' }}></span>}
+                  {order.isLiveGps ? '🛰️ LIVE SATELLITE RADAR' : 'ESTIMATED ARRIVAL'}
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '2px' }}>
+                  {order.etaMinutes ? `~${order.etaMinutes} Mins` : '10 - 15 Mins'}
+                  {order.distanceKm ? ` (${order.distanceKm} km away)` : ''}
+                </div>
               </div>
             )}
           </div>

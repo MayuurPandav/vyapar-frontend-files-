@@ -916,7 +916,7 @@ const CreateInvoicePage = () => {
                     <tr>
                       <td colSpan="9" style={{ padding: '32px 16px', textAlign: 'center' }}>
                         <div style={{ maxWidth: 400, margin: '0 auto', border: '2px dashed var(--border)', borderRadius: 'var(--radius)', padding: 24 }}>
-                          <div style={{ fontSize: 24, marginBottom: 8 }}>➕</div>
+                          <div style={{ fontSize: 28, marginBottom: 8, color: 'var(--text-3)' }}><i className="fas fa-cart-plus"></i></div>
                           <div style={{ fontWeight: 600, color: 'var(--text-2)' }}>No items added yet</div>
                           <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4 }}>Search above to add products</div>
                         </div>

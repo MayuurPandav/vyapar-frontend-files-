@@ -3866,12 +3866,46 @@ export default function Dashboard({ globalSearch = '' }) {
           </div>
 
           <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-3)', marginBottom: '8px' }}>Quick Action Buttons:</div>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-3)', marginBottom: '10px' }}>Quick Action Buttons:</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button className="btn btn--primary" onClick={() => { setCurrentView('sales'); setShowSalesForm(true); }}>➕ New Sale Bill</button>
-              <button className="btn" onClick={() => { setCurrentView('purchase'); setShowPurchaseForm(true); }}>➕ New Purchase</button>
-              <button className="btn" onClick={() => setShowProductModal(true)}>➕ Add Product</button>
-              <button className="btn" onClick={() => setShowPartyModal(true)}>➕ Add Party</button>
+              <button
+                className="btn btn--primary"
+                style={{
+                  backgroundColor: '#10b981',
+                  backgroundImage: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: 600
+                }}
+                onClick={() => { setCurrentView('sales'); setShowSalesForm(true); }}
+              >
+                <i className="fas fa-plus"></i> New Sale Bill
+              </button>
+              <button
+                className="btn"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                onClick={() => { setCurrentView('purchase'); setShowPurchaseForm(true); }}
+              >
+                <i className="fas fa-plus" style={{ color: 'var(--accent, #10b981)' }}></i> New Purchase
+              </button>
+              <button
+                className="btn"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                onClick={() => setShowProductModal(true)}
+              >
+                <i className="fas fa-plus" style={{ color: 'var(--accent, #10b981)' }}></i> Add Product
+              </button>
+              <button
+                className="btn"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                onClick={() => setShowPartyModal(true)}
+              >
+                <i className="fas fa-plus" style={{ color: 'var(--accent, #10b981)' }}></i> Add Party
+              </button>
             </div>
           </div>
 

@@ -816,14 +816,20 @@ ul {
    transform: translateY(0) scale(0.98);
 }
 
+.btn.btn--primary,
+button.btn--primary,
 .btn--primary {
+   background-color: #10b981 !important;
    background: var(--btn-gradient, linear-gradient(135deg, #10b981 0%, #059669 100%));
-   color: #fff !important;
+   color: #ffffff !important;
    border-color: transparent;
    box-shadow: var(--shadow-btn);
 }
 
+.btn.btn--primary:hover,
+button.btn--primary:hover,
 .btn--primary:hover {
+   background-color: #059669 !important;
    background: linear-gradient(135deg, #059669 0%, #047857 100%);
    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
    transform: translateY(-2px);
@@ -2203,55 +2209,94 @@ h6 {
    border-radius: 10px !important;
    padding: 10px 18px !important;
    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-   box-shadow: var(--shadow-sm) !important;
-   border: 1px solid var(--border) !important;
-   background: var(--bg-card) !important;
-   color: var(--text-1) !important;
+   box-shadow: var(--shadow-sm);
+   border: 1px solid var(--border);
+   background: var(--bg-card);
+   color: var(--text-1);
    cursor: pointer !important;
 }
 
 .btn:hover {
-   background: var(--bg-card-hover) !important;
-   border-color: var(--border-focus) !important;
-   transform: translateY(-1px) !important;
-   box-shadow: var(--shadow-md) !important;
+   background: var(--bg-card-hover);
+   border-color: var(--border-focus);
+   transform: translateY(-1px);
+   box-shadow: var(--shadow-md);
+   color: var(--text-1);
 }
 
+.btn.btn--primary,
+button.btn--primary,
 .btn--primary {
-   background: var(--btn-gradient) !important;
-   border: none !important;
+   background-color: #10b981 !important;
+   background: var(--btn-gradient, linear-gradient(135deg, #10b981 0%, #059669 100%)) !important;
+   border: 1px solid #059669 !important;
    color: #ffffff !important;
-   box-shadow: var(--shadow-btn) !important;
+   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
 }
 
+.btn.btn--primary:hover,
+button.btn--primary:hover,
 .btn--primary:hover {
+   background-color: #059669 !important;
+   background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
    transform: translateY(-2px) !important;
    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+   color: #ffffff !important;
    filter: brightness(1.08) !important;
 }
 
+.btn.btn--danger,
+button.btn--danger,
 .btn--danger {
+   background-color: #ef4444 !important;
    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
    border: none !important;
    color: #ffffff !important;
    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2) !important;
 }
 
+.btn.btn--danger:hover,
+button.btn--danger:hover,
 .btn--danger:hover {
+   background-color: #dc2626 !important;
    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
    box-shadow: 0 6px 14px rgba(239, 68, 68, 0.3) !important;
+   color: #ffffff !important;
 }
 
+.btn.btn--success,
+button.btn--success,
 .btn--success {
+   background-color: #10b981 !important;
    background: linear-gradient(135deg, #10b981, #059669) !important;
    border: none !important;
    color: #ffffff !important;
    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2) !important;
 }
 
+.btn.btn--success:hover,
+button.btn--success:hover,
 .btn--success:hover {
+   background-color: #059669 !important;
    background: linear-gradient(135deg, #059669, #047857) !important;
    box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3) !important;
+   color: #ffffff !important;
+}
+
+.btn.btn--secondary,
+button.btn--secondary,
+.btn--secondary {
+   background-color: var(--bg-card-hover, #f1f5f9) !important;
+   color: var(--text-1, #0f172a) !important;
+   border: 1px solid var(--border) !important;
+}
+
+.btn.btn--outline,
+button.btn--outline,
+.btn--outline {
+   background-color: transparent !important;
+   border: 1px solid var(--border) !important;
+   color: var(--text-1, #0f172a) !important;
 }
 
 /* Premium Inputs Reskin */

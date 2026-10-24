@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import QRCode from 'qrcode.react';
 import toast from 'react-hot-toast';
 import ThermalReceiptModal from '../components/ThermalReceiptModal';
+import ShareInvoiceModal from '../components/ShareInvoiceModal';
 
 const InvoiceDetailsPage = () => {
   const { id } = useParams();
@@ -19,6 +20,7 @@ const InvoiceDetailsPage = () => {
   const creator = useMemo(() => findUserById(invoice?.createdBy?._id || invoice?.createdBy), [findUserById, invoice?.createdBy]);
   const invoiceRef = useRef();
   const [showThermalModal, setShowThermalModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const business = {
     name: 'Vyapar Retail Pvt Ltd',
@@ -121,8 +123,12 @@ const InvoiceDetailsPage = () => {
           <button onClick={savePdf} className="btn btn--primary">
             <Download style={{ width: 16, height: 16 }} /> Download PDF
           </button>
-          <button onClick={handleWhatsApp} className="btn">
-            <MessageSquare style={{ width: 16, height: 16 }} /> WhatsApp
+          <button 
+            onClick={() => setShowShareModal(true)} 
+            className="btn"
+            style={{ background: '#25D366', color: '#fff', borderColor: 'transparent', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <MessageSquare style={{ width: 16, height: 16 }} /> Share (WhatsApp/SMS)
           </button>
           {canEdit && (
             <button onClick={() => navigate(`/billing/edit/${id}`)} className="btn">
@@ -280,6 +286,15 @@ const InvoiceDetailsPage = () => {
           customer={customer}
           business={business}
           onClose={() => setShowThermalModal(false)}
+        />
+      )}
+
+      {showShareModal && (
+        <ShareInvoiceModal
+          invoice={invoice}
+          customer={customer}
+          business={business}
+          onClose={() => setShowShareModal(false)}
         />
       )}
     </div>

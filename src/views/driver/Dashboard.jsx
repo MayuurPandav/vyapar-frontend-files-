@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import CallCustomerModal from '../staff/components/CallCustomerModal'
 
 export default function Dashboard({
   deliveries,
@@ -23,6 +24,7 @@ export default function Dashboard({
   const [showRescheduleForm, setShowRescheduleForm] = useState(false)
   const [rescheduleDate, setRescheduleDate] = useState('')
   const [rescheduleSlot, setRescheduleSlot] = useState('9 AM - 11 AM')
+  const [showCallModal, setShowCallModal] = useState(false)
 
   const [showOtpForm, setShowOtpForm] = useState(false)
   const [enteredOtp, setEnteredOtp] = useState(['', '', '', '', '', ''])
@@ -238,6 +240,26 @@ export default function Dashboard({
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)', fontWeight: 600 }}>
               📞 {selectedDelivery.customerPhone} • 🕒 {selectedDelivery.deliveryTimeSlot}
             </p>
+            <button
+              type="button"
+              onClick={() => setShowCallModal(true)}
+              style={{
+                marginTop: '8px',
+                background: '#16a34a',
+                color: '#ffffff',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              📞 Call Customer (Masked)
+            </button>
           </div>
           <div style={{ textAlign: 'right' }}>
             <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>{t('paymentType')}</span>
@@ -955,6 +977,16 @@ export default function Dashboard({
         </div>
 
       </div>
+
+      {showCallModal && selectedDelivery && (
+        <CallCustomerModal
+          customerName={selectedDelivery.customerName}
+          customerPhone={selectedDelivery.customerPhone}
+          orderId={selectedDelivery._id || selectedDelivery.orderId}
+          amountDue={selectedDelivery.codAmount || selectedDelivery.totalAmount}
+          onClose={() => setShowCallModal(false)}
+        />
+      )}
     </div>
   )
 }

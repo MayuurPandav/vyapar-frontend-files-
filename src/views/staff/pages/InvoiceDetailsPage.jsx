@@ -2,13 +2,14 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Download, Printer, Edit3, MessageSquare, Copy, Receipt } from 'lucide-react';
+import { Download, Printer, Edit3, MessageSquare, Copy, Receipt, PhoneCall } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode.react';
 import toast from 'react-hot-toast';
 import ThermalReceiptModal from '../components/ThermalReceiptModal';
 import ShareInvoiceModal from '../components/ShareInvoiceModal';
+import CallCustomerModal from '../components/CallCustomerModal';
 
 const InvoiceDetailsPage = () => {
   const { id } = useParams();
@@ -21,6 +22,7 @@ const InvoiceDetailsPage = () => {
   const invoiceRef = useRef();
   const [showThermalModal, setShowThermalModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
 
   const business = {
     name: 'Vyapar Retail Pvt Ltd',
@@ -129,6 +131,13 @@ const InvoiceDetailsPage = () => {
             style={{ background: '#25D366', color: '#fff', borderColor: 'transparent', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <MessageSquare style={{ width: 16, height: 16 }} /> Share (WhatsApp/SMS)
+          </button>
+          <button 
+            onClick={() => setShowCallModal(true)} 
+            className="btn"
+            style={{ background: '#3b82f6', color: '#fff', borderColor: 'transparent', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <PhoneCall style={{ width: 16, height: 16 }} /> Call Customer
           </button>
           {canEdit && (
             <button onClick={() => navigate(`/billing/edit/${id}`)} className="btn">
@@ -295,6 +304,17 @@ const InvoiceDetailsPage = () => {
           customer={customer}
           business={business}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {showCallModal && (
+        <CallCustomerModal
+          customerName={customer?.name || invoice?.customerName}
+          customerPhone={customer?.phone || invoice?.phone || invoice?.customerPhone}
+          invoiceNumber={invoice?.invoiceNumber || invoice?.id || id}
+          amountDue={balanceDue}
+          agentPhone={user?.phone || '9322372105'}
+          onClose={() => setShowCallModal(false)}
         />
       )}
     </div>

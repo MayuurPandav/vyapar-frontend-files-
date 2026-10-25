@@ -1488,8 +1488,8 @@ export default function Dashboard({ globalSearch = '' }) {
   useEffect(() => { loadProductAlerts(); }, [user, dbData.products.length]);
 
   useEffect(() => {
-    if (!user) return;
-    const socket = io({ transports: ['websocket', 'polling'], reconnectionAttempts: 5 });
+    const socketUrl = (typeof window !== 'undefined' && window.location.port === '5173') ? 'http://localhost:5000' : undefined;
+    const socket = io(socketUrl, { transports: ['polling', 'websocket'], reconnectionAttempts: 5 });
     socket.on('low_stock_alert', (data) => {
       if (data.username === user.username) {
         toast.error(`⚠️ Low Stock Alert: Product "${data.name}" (${data.sku || 'N/A'}) has dropped to ${data.stock} units! (Threshold: ${data.lowStockLevel})`, {
@@ -1814,10 +1814,10 @@ export default function Dashboard({ globalSearch = '' }) {
   // Product Autocomplete handlers
   const handleSaleProductNameChange = (idx, value) => {
     const copy = [...saleItems];
-    copy[idx].name = value;
-    const match = dbData.products.find(p => p.active !== false && p.name.toLowerCase() === value.toLowerCase());
+    copy[idx].name = value || '';
+    const match = dbData.products.find(p => p.active !== false && p.name && p.name.toLowerCase() === (value || '').toLowerCase());
     if (match) {
-      copy[idx].rate = match.price;
+      copy[idx].rate = match.salePrice !== undefined && match.salePrice !== null ? match.salePrice : (match.price ?? 0);
       copy[idx].taxSlab = match.taxSlab || '18%';
       copy[idx].isTaxInclusive = match.isTaxInclusive === true || match.isTaxInclusive === 'true';
       copy[idx].hsnSac = match.hsnSac || '';
@@ -1830,10 +1830,10 @@ export default function Dashboard({ globalSearch = '' }) {
 
   const handlePurProductNameChange = (idx, value) => {
     const copy = [...purItems];
-    copy[idx].name = value;
-    const match = dbData.products.find(p => p.active !== false && p.name.toLowerCase() === value.toLowerCase());
+    copy[idx].name = value || '';
+    const match = dbData.products.find(p => p.active !== false && p.name && p.name.toLowerCase() === (value || '').toLowerCase());
     if (match) {
-      copy[idx].rate = match.price;
+      copy[idx].rate = match.purchasePrice !== undefined && match.purchasePrice !== null ? match.purchasePrice : (match.price ?? 0);
       copy[idx].taxSlab = match.taxSlab || '18%';
       copy[idx].isTaxInclusive = match.isTaxInclusive === true || match.isTaxInclusive === 'true';
       copy[idx].hsnSac = match.hsnSac || '';
@@ -4301,7 +4301,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                 list="products-datalist"
                                 className="fi"
                                 placeholder="Product name"
-                                value={item.name}
+                                value={item.name || ''}
                                 onChange={(e) => handleSaleProductNameChange(idx, e.target.value)}
                                 required
                                 style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '38px', boxSizing: 'border-box' }}
@@ -4390,7 +4390,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                     <input
                                       type="number"
                                       className="fi"
-                                      value={item.qty}
+                                      value={item.qty ?? 1}
                                       disabled
                                       style={{ background: 'var(--border)', width: '100%', textAlign: 'center', padding: '6px 4px', fontSize: '13px', height: '38px', boxSizing: 'border-box' }}
                                     />
@@ -4401,7 +4401,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                     type="number"
                                     className="fi"
                                     min="1"
-                                    value={item.qty}
+                                    value={item.qty ?? 1}
                                     onChange={(e) => {
                                       const prodMatch = dbData.products.find(p => p.name.toLowerCase() === item.name.toLowerCase());
                                       let val = parseInt(e.target.value) || 1;
@@ -4426,7 +4426,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                 type="number"
                                 className="fi"
                                 placeholder="0"
-                                value={item.rate}
+                                value={item.rate ?? 0}
                                 onChange={(e) => {
                                   const copy = [...saleItems];
                                   copy[idx].rate = parseFloat(e.target.value) || 0;
@@ -4812,7 +4812,7 @@ export default function Dashboard({ globalSearch = '' }) {
                               list="products-datalist"
                               className="fi"
                               placeholder="Product name"
-                              value={item.name}
+                              value={item.name || ''}
                               onChange={(e) => handlePurProductNameChange(idx, e.target.value)}
                               required
                             />
@@ -4895,7 +4895,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                     <input
                                       type="number"
                                       className="fi"
-                                      value={item.qty}
+                                      value={item.qty ?? 1}
                                       disabled
                                       style={{ minWidth: 60, background: 'var(--border)' }}
                                     />
@@ -4906,7 +4906,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                     type="number"
                                     className="fi"
                                     min="1"
-                                    value={item.qty}
+                                    value={item.qty ?? 1}
                                     onChange={(e) => {
                                       const copy = [...purItems];
                                       copy[idx].qty = parseInt(e.target.value) || 1;
@@ -4924,7 +4924,7 @@ export default function Dashboard({ globalSearch = '' }) {
                               type="number"
                               className="fi"
                               placeholder="0"
-                              value={item.rate}
+                              value={item.rate ?? 0}
                               onChange={(e) => {
                                 const copy = [...purItems];
                                 copy[idx].rate = parseFloat(e.target.value) || 0;
@@ -4938,7 +4938,7 @@ export default function Dashboard({ globalSearch = '' }) {
                               type="number"
                               className="fi"
                               placeholder="0"
-                              value={item.discount || 0}
+                              value={item.discount ?? 0}
                               onChange={(e) => {
                                 const copy = [...purItems];
                                 copy[idx].discount = parseFloat(e.target.value) || 0;
@@ -5345,7 +5345,7 @@ export default function Dashboard({ globalSearch = '' }) {
                           {p.name}
                           {p.brand ? <span style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block' }}>{p.brand}</span> : null}
                         </td>
-                        <td style={{ color: 'var(--text-3)' }}>{p.sku + (p.hsnSac ? ' (HSN: ' + p.hsnSac + ')' : '')}</td>
+                        <td style={{ color: 'var(--text-3)' }}>{(p.sku || 'N/A') + (p.hsnSac ? ' (HSN: ' + p.hsnSac + ')' : '')}</td>
                         <td><span className="badge badge--blue">{p.category}{p.subCategory ? ' / ' + p.subCategory : ''}</span></td>
                         <td style={{ fontWeight: 600 }}>
                           <AnimatedNumber value={Number(p.stock)||0} duration={700} formatter={v => Math.round(v)} /> <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>{p.unit || 'pcs'}</span>
@@ -5353,7 +5353,7 @@ export default function Dashboard({ globalSearch = '' }) {
                             <span style={{ display: 'block', fontSize: '10px', color: 'var(--accent)', fontWeight: 500 }}>Batches: {p.batches.length}</span>
                           )}
                         </td>
-                        <td>{fmt(p.purchasePrice || 0)} / {fmt(p.price)}</td>
+                        <td>{fmt(p.purchasePrice || 0)} / {fmt(p.price ?? p.salePrice ?? 0)}</td>
                         <td><span className="badge badge--purple">{(p.taxSlab || '18%') + ' ' + (p.isTaxInclusive ? '(Inc)' : '(Exc)')}</span></td>
                         <td><span className={`badge ${(p.stock || 0) <= (p.lowStockLevel || 5) ? 'badge--red' : 'badge--green'}`}>{(p.stock || 0) <= 0 ? 'Out of Stock' : (p.stock || 0) <= (p.lowStockLevel || 5) ? 'Low Stock' : 'In Stock'}</span></td>
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -5363,10 +5363,15 @@ export default function Dashboard({ globalSearch = '' }) {
                             <>
                               <button className="btn--icon" title="Edit Product" onClick={() => {
                                 setProdForm({ 
-                                  ...p, 
-                                  purchasePrice: p.purchasePrice || 0, 
-                                  wholesalePrice: p.wholesalePrice || 0, 
-                                  lowStockLevel: p.lowStockLevel || 5, 
+                                  name: p.name || '',
+                                  sku: p.sku || '',
+                                  category: p.category || 'General',
+                                  stock: p.stock ?? 0,
+                                  price: p.price !== undefined && p.price !== null ? p.price : (p.salePrice ?? 0),
+                                  salePrice: p.salePrice !== undefined && p.salePrice !== null ? p.salePrice : (p.price ?? 0),
+                                  purchasePrice: p.purchasePrice ?? 0, 
+                                  wholesalePrice: p.wholesalePrice ?? 0, 
+                                  lowStockLevel: p.lowStockLevel ?? 5, 
                                   barcode: p.barcode || '', 
                                   subCategory: p.subCategory || '', 
                                   brand: p.brand || '', 
@@ -5380,7 +5385,12 @@ export default function Dashboard({ globalSearch = '' }) {
                                   isBatchTracked: Array.isArray(p.batches) && p.batches.length > 0,
                                   batches: p.batches || [],
                                   hasSerialTracking: p.hasSerialTracking || false,
-                                  serialNumbers: p.serialNumbers || []
+                                  serialNumbers: p.serialNumbers || [],
+                                  notes: p.notes || '',
+                                  image: p.image || '',
+                                  taxSlab: p.taxSlab || '18%',
+                                  isTaxInclusive: p.isTaxInclusive === true || p.isTaxInclusive === 'true',
+                                  hsnSac: p.hsnSac || ''
                                 });
                                 setEditingProduct(p);
                                 setShowProductModal(true);
@@ -11306,10 +11316,10 @@ export default function Dashboard({ globalSearch = '' }) {
             <h4 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginBottom: '12px', color: 'var(--accent)' }}>Basic Details</h4>
             <div className="form-row">
               <div className="fg" style={{ flex: 2 }}><label>Product Name</label>
-                <input className="fi" value={prodForm.name} onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })} required />
+                <input className="fi" value={prodForm.name || ''} onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })} required />
               </div>
               <div className="fg"><label>SKU / Product Code</label>
-                <input className="fi" value={prodForm.sku} onChange={(e) => setProdForm({ ...prodForm, sku: e.target.value })} required />
+                <input className="fi" value={prodForm.sku || ''} onChange={(e) => setProdForm({ ...prodForm, sku: e.target.value })} required />
               </div>
             </div>
             <div className="form-row">
@@ -11377,7 +11387,7 @@ export default function Dashboard({ globalSearch = '' }) {
             <h4 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginTop: '16px', marginBottom: '12px', color: 'var(--accent)' }}>Categorization & Units</h4>
             <div className="form-row form-row-3">
               <div className="fg"><label>Category</label>
-                <input className="fi" list="categories-list" value={prodForm.category} onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })} required />
+                <input className="fi" list="categories-list" value={prodForm.category || ''} onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })} required />
               </div>
               <div className="fg"><label>Sub-Category</label>
                 <input className="fi" placeholder="e.g. Mobile Accessories" value={prodForm.subCategory || ''} onChange={(e) => setProdForm({ ...prodForm, subCategory: e.target.value })} />
@@ -11547,13 +11557,13 @@ export default function Dashboard({ globalSearch = '' }) {
             <h4 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '6px', marginTop: '16px', marginBottom: '12px', color: 'var(--accent)' }}>Pricing & Taxes</h4>
             <div className="form-row form-row-3">
               <div className="fg"><label>Purchase Price (Cost)</label>
-                <input type="number" step="any" className="fi" value={prodForm.purchasePrice || 0} onChange={(e) => setProdForm({ ...prodForm, purchasePrice: e.target.value })} required />
+                <input type="number" step="any" className="fi" value={prodForm.purchasePrice ?? 0} onChange={(e) => setProdForm({ ...prodForm, purchasePrice: e.target.value })} required />
               </div>
               <div className="fg"><label>Selling Price (MRP)</label>
-                <input type="number" step="any" className="fi" value={prodForm.price} onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })} required />
+                <input type="number" step="any" className="fi" value={prodForm.price ?? prodForm.salePrice ?? 0} onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })} required />
               </div>
               <div className="fg"><label>Wholesale Price</label>
-                <input type="number" step="any" className="fi" value={prodForm.wholesalePrice || 0} onChange={(e) => setProdForm({ ...prodForm, wholesalePrice: e.target.value })} />
+                <input type="number" step="any" className="fi" value={prodForm.wholesalePrice ?? 0} onChange={(e) => setProdForm({ ...prodForm, wholesalePrice: e.target.value })} />
               </div>
             </div>
             <div className="form-row form-row-3">
@@ -11584,7 +11594,7 @@ export default function Dashboard({ globalSearch = '' }) {
                 <input 
                   type="number" 
                   className="fi" 
-                  value={prodForm.stock} 
+                  value={prodForm.stock ?? 0} 
                   onChange={(e) => setProdForm({ ...prodForm, stock: e.target.value })} 
                   required 
                   disabled={prodForm.hasSerialTracking || prodForm.isBatchTracked} 
@@ -11597,7 +11607,7 @@ export default function Dashboard({ globalSearch = '' }) {
                 )}
               </div>
               <div className="fg"><label>Low Stock Alert Level</label>
-                <input type="number" className="fi" value={prodForm.lowStockLevel || 5} onChange={(e) => setProdForm({ ...prodForm, lowStockLevel: e.target.value })} required />
+                <input type="number" className="fi" value={prodForm.lowStockLevel ?? 5} onChange={(e) => setProdForm({ ...prodForm, lowStockLevel: e.target.value })} required />
               </div>
               <div className="fg"><label>Expiry Date</label>
                 <input type="date" className="fi" value={prodForm.expiryDate || ''} onChange={(e) => setProdForm({ ...prodForm, expiryDate: e.target.value })} />
@@ -11642,10 +11652,10 @@ export default function Dashboard({ globalSearch = '' }) {
               <>
                 <div className="form-row">
                   <div className="fg"><label>Party Name <span style={{color: 'red'}}>*</span></label>
-                    <input className="fi" value={partyForm.name} onChange={(e) => setPartyForm({ ...partyForm, name: e.target.value })} required />
+                    <input className="fi" value={partyForm.name || ''} onChange={(e) => setPartyForm({ ...partyForm, name: e.target.value })} required />
                   </div>
                   <div className="fg"><label>Type</label>
-                    <select className="fi" value={partyForm.type} onChange={(e) => setPartyForm({ ...partyForm, type: e.target.value })}>
+                    <select className="fi" value={partyForm.type || 'Customer'} onChange={(e) => setPartyForm({ ...partyForm, type: e.target.value })}>
                       <option>Customer</option>
                       <option>Supplier</option>
                     </select>
@@ -11653,19 +11663,19 @@ export default function Dashboard({ globalSearch = '' }) {
                 </div>
                 <div className="form-row">
                   <div className="fg"><label>Phone <span style={{color: 'red'}}>*</span></label>
-                    <input type="tel" className="fi" value={partyForm.phone} onChange={(e) => setPartyForm({ ...partyForm, phone: e.target.value })} required />
+                    <input type="tel" className="fi" value={partyForm.phone || ''} onChange={(e) => setPartyForm({ ...partyForm, phone: e.target.value })} required />
                   </div>
                   <div className="fg"><label>WhatsApp Number</label>
-                    <input type="tel" className="fi" value={partyForm.whatsappNumber} onChange={(e) => setPartyForm({ ...partyForm, whatsappNumber: e.target.value })} placeholder="Same as phone if empty" />
+                    <input type="tel" className="fi" value={partyForm.whatsappNumber || ''} onChange={(e) => setPartyForm({ ...partyForm, whatsappNumber: e.target.value })} placeholder="Same as phone if empty" />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="fg"><label>Email Address</label>
-                    <input type="email" className="fi" value={partyForm.email} onChange={(e) => setPartyForm({ ...partyForm, email: e.target.value })} />
+                    <input type="email" className="fi" value={partyForm.email || ''} onChange={(e) => setPartyForm({ ...partyForm, email: e.target.value })} />
                   </div>
                   {partyForm.type === 'Customer' && (
                     <div className="fg"><label>Customer Group</label>
-                      <select className="fi" value={partyForm.customerGroup} onChange={(e) => setPartyForm({ ...partyForm, customerGroup: e.target.value })}>
+                      <select className="fi" value={partyForm.customerGroup || 'Retail'} onChange={(e) => setPartyForm({ ...partyForm, customerGroup: e.target.value })}>
                         <option>Retail</option>
                         <option>Wholesale</option>
                         <option>VIP</option>
@@ -11679,10 +11689,10 @@ export default function Dashboard({ globalSearch = '' }) {
             {partyModalTab === 'billing' && (
               <>
                 <div className="fg"><label>Billing Address</label>
-                  <textarea className="fi" rows="2" value={partyForm.billingAddress} onChange={(e) => setPartyForm({ ...partyForm, billingAddress: e.target.value })}></textarea>
+                  <textarea className="fi" rows="2" value={partyForm.billingAddress || ''} onChange={(e) => setPartyForm({ ...partyForm, billingAddress: e.target.value })}></textarea>
                 </div>
                 <div className="fg"><label>Shipping Address</label>
-                  <textarea className="fi" rows="2" value={partyForm.shippingAddress} onChange={(e) => setPartyForm({ ...partyForm, shippingAddress: e.target.value })} placeholder="Leave empty if same as billing"></textarea>
+                  <textarea className="fi" rows="2" value={partyForm.shippingAddress || ''} onChange={(e) => setPartyForm({ ...partyForm, shippingAddress: e.target.value })} placeholder="Leave empty if same as billing"></textarea>
                 </div>
                 <div className="form-row">
                   <div className="fg"><label>State (Place of Supply)</label>
@@ -11693,10 +11703,10 @@ export default function Dashboard({ globalSearch = '' }) {
                 </div>
                 <div className="form-row">
                   <div className="fg"><label>GSTIN</label>
-                    <input className="fi" value={partyForm.gstin} onChange={(e) => setPartyForm({ ...partyForm, gstin: e.target.value.toUpperCase() })} placeholder="e.g. 29ABCDE1234F1Z5" maxLength="15" />
+                    <input className="fi" value={partyForm.gstin || ''} onChange={(e) => setPartyForm({ ...partyForm, gstin: e.target.value.toUpperCase() })} placeholder="e.g. 29ABCDE1234F1Z5" maxLength="15" />
                   </div>
                   <div className="fg"><label>PAN Number</label>
-                    <input className="fi" value={partyForm.pan} onChange={(e) => setPartyForm({ ...partyForm, pan: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength="10" />
+                    <input className="fi" value={partyForm.pan || ''} onChange={(e) => setPartyForm({ ...partyForm, pan: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength="10" />
                   </div>
                 </div>
               </>
@@ -11706,10 +11716,10 @@ export default function Dashboard({ globalSearch = '' }) {
               <>
                 <div className="form-row">
                   <div className="fg"><label>Opening Balance ({getCurrencySymbol()})</label>
-                    <input type="number" className="fi" value={partyForm.openingBalance} onChange={(e) => setPartyForm({ ...partyForm, openingBalance: e.target.value })} placeholder="Positive = Receivable, Negative = Payable" />
+                    <input type="number" className="fi" value={partyForm.openingBalance ?? 0} onChange={(e) => setPartyForm({ ...partyForm, openingBalance: e.target.value })} placeholder="Positive = Receivable, Negative = Payable" />
                   </div>
                   <div className="fg"><label>Credit Limit ({getCurrencySymbol()})</label>
-                    <input type="number" className="fi" value={partyForm.creditLimit} onChange={(e) => setPartyForm({ ...partyForm, creditLimit: e.target.value })} />
+                    <input type="number" className="fi" value={partyForm.creditLimit ?? 0} onChange={(e) => setPartyForm({ ...partyForm, creditLimit: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-row">
@@ -11750,10 +11760,10 @@ export default function Dashboard({ globalSearch = '' }) {
           <form onSubmit={handleExpenseSubmit}>
             <div className="form-row">
               <div className="fg"><label>Date <span style={{color: 'red'}}>*</span></label>
-                <input type="date" className="fi" value={expenseForm.date} onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
+                <input type="date" className="fi" value={expenseForm.date || ''} onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
               </div>
               <div className="fg"><label>Category <span style={{color: 'red'}}>*</span></label>
-                <select className="fi" value={expenseForm.category} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>
+                <select className="fi" value={expenseForm.category || 'Rent'} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>
                   <option>Rent</option>
                   <option>Electricity</option>
                   <option>Staff salary</option>
@@ -11767,10 +11777,10 @@ export default function Dashboard({ globalSearch = '' }) {
             </div>
             <div className="form-row">
               <div className="fg"><label>Amount ({getCurrencySymbol()}) <span style={{color: 'red'}}>*</span></label>
-                <input type="number" className="fi" value={expenseForm.amount} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} required min="1" />
+                <input type="number" className="fi" value={expenseForm.amount ?? ''} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} required min="1" />
               </div>
               <div className="fg"><label>Payment Mode</label>
-                <select className="fi" value={expenseForm.paymentMode} onChange={(e) => setExpenseForm({ ...expenseForm, paymentMode: e.target.value })}>
+                <select className="fi" value={expenseForm.paymentMode || 'Cash'} onChange={(e) => setExpenseForm({ ...expenseForm, paymentMode: e.target.value })}>
                   <option>Cash</option>
                   <option>Bank</option>
                   <option>UPI</option>
@@ -11778,7 +11788,7 @@ export default function Dashboard({ globalSearch = '' }) {
               </div>
             </div>
             <div className="fg"><label>Description / Notes</label>
-              <textarea className="fi" rows="2" value={expenseForm.description} onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })} placeholder="What was this expense for?"></textarea>
+              <textarea className="fi" rows="2" value={expenseForm.description || ''} onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })} placeholder="What was this expense for?"></textarea>
             </div>
             
             <div className="fg" style={{ marginTop: '12px' }}>
@@ -13474,23 +13484,23 @@ export default function Dashboard({ globalSearch = '' }) {
 
       <datalist id="products-datalist">
         {dbData.products.filter(p => p.active !== false).map((p, idx) => (
-          <option key={p._id || p.id || p.barcode || `prod-${idx}`} value={p.name}>{p.name} (Stock: {p.stock} | Price: {fmt(p.price)})</option>
+          <option key={`prod-${p._id || p.id || p.barcode || 'item'}-${idx}`} value={p.name}>{p.name} (Stock: {p.stock} | Price: {fmt(p.price ?? p.salePrice ?? 0)})</option>
         ))}
       </datalist>
       <datalist id="categories-list">
-        {customCats.map((cat, idx) => <option key={cat || `cat-${idx}`} value={cat} />)}
+        {customCats.map((cat, idx) => <option key={`cat-${cat || 'cat'}-${idx}`} value={cat} />)}
       </datalist>
       <datalist id="brands-list">
-        {customBrands.map((b, idx) => <option key={b || `brand-${idx}`} value={b} />)}
+        {customBrands.map((b, idx) => <option key={`brand-${b || 'brand'}-${idx}`} value={b} />)}
       </datalist>
       <datalist id="suppliers-datalist">
         {dbData.parties.filter(p => (p.type || '').toLowerCase() === 'supplier').map((p, idx) => (
-          <option key={p._id || p.id || p.phone || `supp-${idx}`} value={p.name}>{p.name} (Phone: {p.phone || 'N/A'} | Balance: {fmt(p.balance)})</option>
+          <option key={`supp-${p._id || p.id || p.phone || 'supp'}-${idx}`} value={p.name}>{p.name} (Phone: {p.phone || 'N/A'} | Balance: {fmt(p.balance)})</option>
         ))}
       </datalist>
       <datalist id="customers-datalist">
         {dbData.parties.filter(p => (p.type || '').toLowerCase() === 'customer').map((p, idx) => (
-          <option key={p._id || p.id || p.phone || `cust-${idx}`} value={p.name}>{p.name} (Phone: {p.phone || 'N/A'} | Balance: {fmt(p.balance)})</option>
+          <option key={`cust-${p._id || p.id || p.phone || 'cust'}-${idx}`} value={p.name}>{p.name} (Phone: {p.phone || 'N/A'} | Balance: {fmt(p.balance)})</option>
         ))}
       </datalist>
 

@@ -1341,7 +1341,7 @@ export default function Invoices() {
                     style={{ flex: 1, paddingRight: customer.trim() && !parties.find(p => p.name?.toLowerCase() === customer.trim().toLowerCase()) ? '90px' : '14px' }}
                   />
                   <datalist id="party-list">
-                    {parties.map(p => <option key={p.id || p._id} value={p.name} />)}
+                    {parties.map((p, idx) => <option key={`party-${p.id || p._id || 'party'}-${idx}`} value={p.name} />)}
                   </datalist>
                   {customer.trim() && !parties.find(p => p.name?.toLowerCase() === customer.trim().toLowerCase()) && (
                     <button 

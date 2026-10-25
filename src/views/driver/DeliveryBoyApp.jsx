@@ -353,7 +353,8 @@ export default function DeliveryBoyApp({ token, user, handleLogout: parentLogout
       loadProfile()
       loadDeliveries()
 
-      const socket = io({ transports: ['websocket', 'polling'], reconnectionAttempts: 5 })
+      const socketUrl = (typeof window !== 'undefined' && window.location.port === '5173') ? 'http://localhost:5000' : undefined;
+      const socket = io(socketUrl, { transports: ['polling', 'websocket'], reconnectionAttempts: 5 })
       socket.on('delivery_updated', (updatedDelivery) => {
         loadDeliveries()
       })

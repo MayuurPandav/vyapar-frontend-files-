@@ -1488,7 +1488,7 @@ export default function Dashboard({ globalSearch = '' }) {
   useEffect(() => { loadProductAlerts(); }, [user, dbData.products.length]);
 
   useEffect(() => {
-    const socketUrl = (typeof window !== 'undefined' && window.location.port === '5173') ? 'http://localhost:5000' : undefined;
+    const socketUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ? 'http://localhost:5000' : 'https://vyapar-backend-files.onrender.com';
     const socket = io(socketUrl, { transports: ['polling', 'websocket'], reconnectionAttempts: 5 });
     socket.on('low_stock_alert', (data) => {
       if (data.username === user.username) {

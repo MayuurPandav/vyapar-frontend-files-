@@ -129,7 +129,15 @@ export default function Onboarding() {
                 <button className="btn" onClick={async ()=>{
                   if (!form.email) return alert('Enter email');
                   const res = await fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username: user.username, field: 'email', value: form.email }) });
-                  if (res.ok) alert('OTP sent (logged to server in dev).'); else alert('Failed to send OTP');
+                  const j = await res.json().catch(()=>({}));
+                  if (res.ok) {
+                    if (j.otp) {
+                      setEmailOtp(j.otp);
+                      alert(`Test OTP is: ${j.otp}\n(Auto-filled for you! Click Verify or continue below)`);
+                    } else {
+                      alert('OTP sent to your email.');
+                    }
+                  } else alert(j.message || 'Failed to send OTP');
                 }} style={{ whiteSpace: 'nowrap' }}>Send OTP</button>
               </div>
               {!emailVerified && (
@@ -151,7 +159,15 @@ export default function Onboarding() {
                 <button className="btn" onClick={async ()=>{
                   if (!form.phone) return alert('Enter phone');
                   const res = await fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username: user.username, field: 'phone', value: form.phone }) });
-                  if (res.ok) alert('OTP sent (logged to server in dev).'); else alert('Failed to send OTP');
+                  const j = await res.json().catch(()=>({}));
+                  if (res.ok) {
+                    if (j.otp) {
+                      setPhoneOtp(j.otp);
+                      alert(`Test OTP is: ${j.otp}\n(Auto-filled for you! Click Verify or continue below)`);
+                    } else {
+                      alert('OTP sent to your phone.');
+                    }
+                  } else alert(j.message || 'Failed to send OTP');
                 }} style={{ whiteSpace: 'nowrap' }}>Send OTP</button>
               </div>
               {!phoneVerified && (

@@ -9,18 +9,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0a0f1d;
-      --bg-card: rgba(18, 25, 44, 0.85);
-      --border-color: rgba(255, 255, 255, 0.1);
-      --primary: #6366f1;
-      --primary-light: #818cf8;
-      --secondary: #10b981;
-      --accent: #f59e0b;
-      --danger: #ef4444;
-      --cyan: #06b6d4;
-      --purple: #8b5cf6;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --secondary: #059669;
+      --accent: #d97706;
+      --danger: #dc2626;
+      --cyan: #0284c7;
+      --purple: #7c3aed;
+      --text-main: #0f172a;
+      --text-muted: #475569;
     }
 
     * {
@@ -31,7 +31,7 @@
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background: radial-gradient(circle at 10% 20%, #111827 0%, #030712 90%);
+      background: radial-gradient(circle at 10% 20%, #f1f5f9 0%, #e2e8f0 100%);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
@@ -50,8 +50,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 24px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 20px 50px -15px rgba(15, 23, 42, 0.12), 0 0 30px rgba(79, 70, 229, 0.05);
       position: relative;
       overflow: hidden;
     }
@@ -71,6 +70,7 @@
       visibility: hidden;
       transform: translateX(40px) scale(0.98);
       transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      background: #ffffff;
     }
 
     .slide.active {
@@ -98,9 +98,9 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      background: rgba(99, 102, 241, 0.15);
-      color: var(--primary-light);
-      border: 1px solid rgba(99, 102, 241, 0.3);
+      background: rgba(79, 70, 229, 0.08);
+      color: var(--primary);
+      border: 1px solid rgba(79, 70, 229, 0.2);
     }
 
     .slide-title {
@@ -108,7 +108,7 @@
       font-size: 2.1rem;
       font-weight: 800;
       line-height: 1.15;
-      background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
+      background: linear-gradient(135deg, #0f172a 30%, #334155 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-top: 4px;
@@ -135,24 +135,26 @@
       gap: 12px;
     }
 
-    /* Cards */
+    /* Cards in Light Mode */
     .card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 14px;
       padding: 14px 16px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
     }
 
     .card:hover {
       transform: translateY(-2px);
-      border-color: rgba(99, 102, 241, 0.4);
-      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(79, 70, 229, 0.4);
+      background: #ffffff;
+      box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08);
     }
 
     .card-icon {
@@ -165,7 +167,7 @@
       font-family: 'Outfit', sans-serif;
       font-size: 1.08rem;
       font-weight: 700;
-      color: #fff;
+      color: #0f172a;
       margin-bottom: 3px;
       display: flex;
       align-items: center;
@@ -174,7 +176,7 @@
 
     .card-desc {
       font-size: 0.86rem;
-      color: var(--text-muted);
+      color: #475569;
       line-height: 1.35;
     }
 
@@ -205,9 +207,9 @@
       max-height: 350px;
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
-      background: #000;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      background: #f8fafc;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -234,7 +236,7 @@
       font-size: 3rem;
       font-weight: 800;
       line-height: 1.05;
-      background: linear-gradient(135deg, #ffffff 20%, #818cf8 60%, #c084fc 100%);
+      background: linear-gradient(135deg, #0f172a 20%, #4f46e5 60%, #7c3aed 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 10px;
@@ -242,7 +244,7 @@
 
     .hero-tagline {
       font-size: 1.05rem;
-      color: #cbd5e1;
+      color: #334155;
       line-height: 1.45;
       margin-bottom: 16px;
     }
@@ -255,18 +257,18 @@
     }
 
     .tech-pill {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
       padding: 4px 10px;
       border-radius: 6px;
       font-size: 0.78rem;
-      color: #e2e8f0;
+      color: #1e293b;
       font-weight: 600;
     }
 
     .team-badge-box {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(99, 102, 241, 0.35);
+      background: #f8fafc;
+      border: 1px solid rgba(79, 70, 229, 0.25);
       border-radius: 12px;
       padding: 12px 18px;
     }
@@ -274,7 +276,7 @@
     .team-title {
       font-size: 0.72rem;
       font-weight: 800;
-      color: var(--primary-light);
+      color: #4f46e5;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       margin-bottom: 6px;
@@ -286,7 +288,7 @@
       gap: 4px 14px;
       font-size: 0.88rem;
       font-weight: 600;
-      color: #fff;
+      color: #0f172a;
     }
 
     /* Metric Callout */
@@ -299,7 +301,7 @@
       margin-bottom: 3px;
     }
 
-    /* Slide Footer Controls */
+    /* Slide Footer Controls in Light Mode */
     .deck-controls {
       position: absolute;
       bottom: 0;
@@ -309,8 +311,8 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 36px;
-      background: rgba(10, 15, 29, 0.95);
-      border-top: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.98);
+      border-top: 1px solid #e2e8f0;
       z-index: 10;
     }
 
@@ -321,9 +323,9 @@
     }
 
     .btn {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
       padding: 7px 16px;
       border-radius: 8px;
       font-size: 0.88rem;
@@ -339,35 +341,37 @@
     .btn:hover {
       background: var(--primary);
       border-color: var(--primary);
+      color: #ffffff;
       transform: translateY(-1px);
     }
 
     .btn-primary {
       background: var(--primary);
       border-color: var(--primary);
+      color: #ffffff;
     }
 
     .btn-success {
-      background: rgba(16, 185, 129, 0.2);
-      border-color: rgba(16, 185, 129, 0.4);
-      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #059669;
       text-decoration: none;
     }
 
     .btn-success:hover {
       background: var(--secondary);
-      color: #fff;
+      color: #ffffff;
     }
 
     .slide-counter {
       font-size: 0.92rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: #64748b;
       letter-spacing: 0.05em;
     }
 
     .slide-counter span {
-      color: #fff;
+      color: #0f172a;
     }
 
     @media print {
@@ -396,15 +400,15 @@
         height: 100vh !important;
         padding: 40px !important;
         box-sizing: border-box !important;
-        background: #0f172a !important;
-        color: #fff !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- 16:9 Presentation Deck Window -->
+  <!-- 16:9 Presentation Deck Window (Clean Light Theme) -->
   <div class="deck-container" id="deck">
 
     <!-- ================= SLIDE 1: COVER ================= -->
@@ -443,7 +447,7 @@
     <section class="slide" id="slide-2">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">⚠️ The Everyday Struggle</div>
+          <div class="badge" style="background: rgba(220, 38, 38, 0.08); color: #dc2626; border-color: rgba(220, 38, 38, 0.25);">⚠️ The Everyday Struggle</div>
           <h2 class="slide-title">Why Indian Merchants Struggle Today</h2>
           <p class="slide-subtitle">Traditional paper books and legacy desktop tools create friction and loss every single day.</p>
         </div>
@@ -481,7 +485,7 @@
     <section class="slide" id="slide-3">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">💡 The Modern Solution</div>
+          <div class="badge" style="background: rgba(5, 150, 105, 0.08); color: #059669; border-color: rgba(5, 150, 105, 0.25);">💡 The Modern Solution</div>
           <h2 class="slide-title">Introducing Vyapar 2.0</h2>
           <p class="slide-subtitle">A unified, web-first platform designed to run an entire business from a single screen.</p>
         </div>
@@ -519,7 +523,7 @@
     <section class="slide" id="slide-4">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.3);">📊 Core Architecture</div>
+          <div class="badge" style="background: rgba(2, 132, 199, 0.08); color: #0284c7; border-color: rgba(2, 132, 199, 0.25);">📊 Core Architecture</div>
           <h2 class="slide-title">Key Operational Modules</h2>
           <p class="slide-subtitle">Four integrated pillars powering the entire business workflow in real-time.</p>
         </div>
@@ -557,7 +561,7 @@
     <section class="slide" id="slide-5">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.3);">🌟 The Showstopper Feature</div>
+          <div class="badge" style="background: rgba(2, 132, 199, 0.08); color: #0284c7; border-color: rgba(2, 132, 199, 0.25);">🌟 The Showstopper Feature</div>
           <h2 class="slide-title">Real-Time GPS Delivery Tracking</h2>
           <p class="slide-subtitle">The competitive edge that traditional software like Tally or Marg completely lack.</p>
         </div>
@@ -587,7 +591,7 @@
     <section class="slide" id="slide-6">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-color: rgba(139, 92, 246, 0.3);">🛠️ Architecture & Tech Stack</div>
+          <div class="badge" style="background: rgba(124, 58, 237, 0.08); color: #7c3aed; border-color: rgba(124, 58, 237, 0.25);">🛠️ Architecture & Tech Stack</div>
           <h2 class="slide-title">Built on Rock-Solid Modern Tech</h2>
           <p class="slide-subtitle">Designed for sub-second response times, zero server crashes, and enterprise scalability.</p>
         </div>
@@ -625,7 +629,7 @@
     <section class="slide" id="slide-7">
       <div class="slide-header">
         <div>
-          <div class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">🎯 Business Value & Impact</div>
+          <div class="badge" style="background: rgba(5, 150, 105, 0.08); color: #059669; border-color: rgba(5, 150, 105, 0.25);">🎯 Business Value & Impact</div>
           <h2 class="slide-title">Real World Business Impact</h2>
           <p class="slide-subtitle">Measurable returns on investment for retail merchants and distributors.</p>
         </div>
@@ -662,13 +666,13 @@
     <!-- ================= SLIDE 8: THANK YOU & LIVE DEMO ================= -->
     <section class="slide" id="slide-8">
       <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-        <div class="badge" style="margin-bottom: 12px; background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.3);">✨ CONCLUSION & Q&A ✨</div>
-        <h2 style="font-family: 'Outfit'; font-size: 3.4rem; font-weight: 800; color: #fff; margin-bottom: 8px;">Thank You!</h2>
-        <p style="font-size: 1.3rem; color: var(--primary-light); font-weight: 600; margin-bottom: 24px;">Questions & Live System Walkthrough</p>
+        <div class="badge" style="margin-bottom: 12px; background: rgba(2, 132, 199, 0.08); color: #0284c7; border-color: rgba(2, 132, 199, 0.25);">✨ CONCLUSION & Q&A ✨</div>
+        <h2 style="font-family: 'Outfit'; font-size: 3.4rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Thank You!</h2>
+        <p style="font-size: 1.3rem; color: #4f46e5; font-weight: 600; margin-bottom: 24px;">Questions & Live System Walkthrough</p>
         
-        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 18px 36px; margin-bottom: 24px; max-width: 650px;">
-          <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary-light); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;">Project Presentation Team:</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 1.05rem; font-weight: 600; color: #fff;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 36px; margin-bottom: 24px; max-width: 650px; box-shadow: 0 4px 16px rgba(15,23,42,0.05);">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;">Project Presentation Team:</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 1.05rem; font-weight: 600; color: #0f172a;">
             <div>• 01 - Pranali Bhagat</div>
             <div>• 06 - Hrutuja Champanerkar</div>
             <div>• 31 - Mayur Pandav</div>

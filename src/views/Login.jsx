@@ -69,6 +69,9 @@ export default function Login() {
 
         setTimeout(() => {
           setLaunching(false);
+          if (window.location.pathname === '/login' || window.location.search.includes('login')) {
+            window.history.pushState({}, '', '/');
+          }
           handleLogin(data);
         }, 1100);
       } else {

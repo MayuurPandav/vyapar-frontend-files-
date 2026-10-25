@@ -59,8 +59,8 @@ function AppContent() {
     return <CustomerTrackingPortal orderIdParam={searchParams.get('track')} />;
   }
 
-  // 1. If not logged in, render the login view
-  if (!token || !user) {
+  // 1. Direct login route or not logged in -> render the login view
+  if (pathname === '/login' || searchParams.has('login') || !token || !user) {
     return <Login />;
   }
 

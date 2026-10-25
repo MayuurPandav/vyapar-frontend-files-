@@ -10,7 +10,7 @@
   <style>
     :root {
       --bg-dark: #0a0f1d;
-      --bg-card: rgba(18, 25, 44, 0.75);
+      --bg-card: rgba(18, 25, 44, 0.85);
       --border-color: rgba(255, 255, 255, 0.1);
       --primary: #6366f1;
       --primary-light: #818cf8;
@@ -63,7 +63,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      padding: 34px 54px 80px 54px;
+      padding: 32px 50px 76px 50px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -85,16 +85,16 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
 
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
+      padding: 4px 12px;
       border-radius: 999px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -105,46 +105,42 @@
 
     .slide-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 2.15rem;
+      font-size: 2.1rem;
       font-weight: 800;
       line-height: 1.15;
       background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-top: 5px;
+      margin-top: 4px;
     }
 
     .slide-subtitle {
-      font-size: 0.98rem;
+      font-size: 0.95rem;
       color: var(--text-muted);
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
-    /* Slide Content Grid */
-    .content-grid {
+    /* Slide Content Split Grid (Content Left + Image Right) */
+    .split-grid {
       display: grid;
-      gap: 16px;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 22px;
       flex: 1;
-      align-items: stretch;
-    }
-
-    .grid-2x2 {
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-    }
-
-    .grid-split {
-      grid-template-columns: 1.15fr 0.85fr;
       align-items: center;
-      gap: 24px;
+    }
+
+    .sub-grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     /* Cards */
     .card {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 16px 20px;
+      border-radius: 14px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -160,26 +156,26 @@
     }
 
     .card-icon {
-      font-size: 1.6rem;
-      margin-bottom: 6px;
+      font-size: 1.5rem;
+      margin-bottom: 4px;
       display: inline-block;
     }
 
     .card-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 1.15rem;
+      font-size: 1.08rem;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .card-desc {
-      font-size: 0.90rem;
+      font-size: 0.86rem;
       color: var(--text-muted);
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     .card.danger {
@@ -196,6 +192,32 @@
 
     .card.cyan {
       border-left: 4px solid var(--cyan);
+    }
+
+    .card.purple {
+      border-left: 4px solid var(--purple);
+    }
+
+    /* Images */
+    .slide-img-box {
+      width: 100%;
+      height: 100%;
+      max-height: 350px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     /* Slide 1 - Hero Specifics */
@@ -267,49 +289,14 @@
       color: #fff;
     }
 
-    .hero-image-box {
-      width: 100%;
-      height: 100%;
-      max-height: 380px;
-      border-radius: 20px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-      background: #000;
-    }
-
-    .hero-image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    /* Slide 5 Tracking Split */
-    .tracking-img-box {
-      width: 100%;
-      max-height: 340px;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    }
-
-    .tracking-img-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
     /* Metric Callout */
     .metric-number {
       font-family: 'Outfit', sans-serif;
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: 800;
       color: var(--secondary);
       line-height: 1;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     /* Slide Footer Controls */
@@ -383,7 +370,6 @@
       color: #fff;
     }
 
-    /* Print / PDF Styles */
     @media print {
       body {
         background: #fff !important;
@@ -437,7 +423,6 @@
             <span class="tech-pill">📒 Digital Khata</span>
           </div>
 
-          <!-- Project Team Names directly from user request -->
           <div class="team-badge-box">
             <div class="team-title">Presented By:</div>
             <div class="team-grid">
@@ -448,13 +433,13 @@
             </div>
           </div>
         </div>
-        <div class="hero-image-box">
+        <div class="slide-img-box">
           <img src="/presentation/hero.jpg" alt="Vyapar 2.0 Modern ERP Suite">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 2: THE PROBLEM ================= -->
+    <!-- ================= SLIDE 2: THE PROBLEM (With Bahi-Khata Image) ================= -->
     <section class="slide" id="slide-2">
       <div class="slide-header">
         <div>
@@ -463,31 +448,36 @@
           <p class="slide-subtitle">Traditional paper books and legacy desktop tools create friction and loss every single day.</p>
         </div>
       </div>
-      <div class="content-grid grid-2x2">
-        <div class="card danger">
-          <div class="card-icon">📒</div>
-          <h3 class="card-title">Messy Paper Khata</h3>
-          <p class="card-desc">Customer credit entries get lost, forgotten, or disputed. Manual phone calls for payment collection feel awkward and waste hours.</p>
+      <div class="split-grid">
+        <div class="sub-grid-2x2">
+          <div class="card danger">
+            <div class="card-icon">📒</div>
+            <h3 class="card-title">Messy Paper Khata</h3>
+            <p class="card-desc">Customer credit entries get lost, forgotten, or disputed. Manual phone calls for payment collection feel awkward.</p>
+          </div>
+          <div class="card danger">
+            <div class="card-icon">📦</div>
+            <h3 class="card-title">Blind Inventory</h3>
+            <p class="card-desc">Popular items run out of stock without notice, while slow-moving items expire unnoticed in warehouses.</p>
+          </div>
+          <div class="card danger">
+            <div class="card-icon">⏳</div>
+            <h3 class="card-title">Slow Counter Queues</h3>
+            <p class="card-desc">Typing prices by hand creates long queues, manual calculation mistakes, and missed sales during peak rush.</p>
+          </div>
+          <div class="card danger">
+            <div class="card-icon">🚚</div>
+            <h3 class="card-title">Zero Delivery Visibility</h3>
+            <p class="card-desc">Customers constantly call asking <em>"Where is my parcel?"</em> Merchants have no idea where drivers are.</p>
+          </div>
         </div>
-        <div class="card danger">
-          <div class="card-icon">📦</div>
-          <h3 class="card-title">Blind Inventory Control</h3>
-          <p class="card-desc">Popular items run out of stock without notice, while slow-moving items expire unnoticed in the back warehouse.</p>
-        </div>
-        <div class="card danger">
-          <div class="card-icon">⏳</div>
-          <h3 class="card-title">Slow Counter Queues</h3>
-          <p class="card-desc">Typing prices by hand during peak rush hours creates long customer queues, manual calculation mistakes, and missed sales.</p>
-        </div>
-        <div class="card danger">
-          <div class="card-icon">🚚</div>
-          <h3 class="card-title">Zero Delivery Visibility</h3>
-          <p class="card-desc">Customers constantly call asking <em>"Where is my parcel?"</em> Merchants have no idea where delivery drivers are located.</p>
+        <div class="slide-img-box">
+          <img src="/presentation/problem.jpg" alt="Paperwork and bookkeeping chaos in traditional retail">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 3: THE SOLUTION ================= -->
+    <!-- ================= SLIDE 3: THE SOLUTION (With Real Live Dashboard Image) ================= -->
     <section class="slide" id="slide-3">
       <div class="slide-header">
         <div>
@@ -496,31 +486,36 @@
           <p class="slide-subtitle">A unified, web-first platform designed to run an entire business from a single screen.</p>
         </div>
       </div>
-      <div class="content-grid grid-2x2">
-        <div class="card primary">
-          <div class="card-icon">⚡</div>
-          <h3 class="card-title">Instant GST Billing & Thermal Receipts</h3>
-          <p class="card-desc">Generate professional A4 Tax Invoices or instant 58mm/80mm counter POS thermal receipts with automated GST compliance.</p>
+      <div class="split-grid">
+        <div class="sub-grid-2x2">
+          <div class="card primary">
+            <div class="card-icon">⚡</div>
+            <h3 class="card-title">Instant GST Billing</h3>
+            <p class="card-desc">Generate professional A4 Tax Invoices or instant 58mm/80mm counter POS thermal receipts with automated tax compliance.</p>
+          </div>
+          <div class="card success">
+            <div class="card-icon">🏷️</div>
+            <h3 class="card-title">Barcode Scan Engine</h3>
+            <p class="card-desc">Automatically generate standard EAN-13 barcodes and QR codes. Print full A4 barcode sticker sheets in one click.</p>
+          </div>
+          <div class="card cyan">
+            <div class="card-icon">💳</div>
+            <h3 class="card-title">Digital Ledger Khata</h3>
+            <p class="card-desc">Track real-time customer balances. Send automated WhatsApp payment reminders with direct online payment links.</p>
+          </div>
+          <div class="card purple">
+            <div class="card-icon">👥</div>
+            <h3 class="card-title">Multi-Role Portals</h3>
+            <p class="card-desc">Clean, dedicated portals for Store Owners, Cashier POS counters, Delivery Partners, and Accountants.</p>
+          </div>
         </div>
-        <div class="card success">
-          <div class="card-icon">🏷️</div>
-          <h3 class="card-title">Barcode Generation & Scan Engine</h3>
-          <p class="card-desc">Automatically generate standard EAN-13 barcodes and QR codes. Print full A4 barcode sticker sheets in one click.</p>
-        </div>
-        <div class="card cyan">
-          <div class="card-icon">💳</div>
-          <h3 class="card-title">Digital Ledger & WhatsApp Reminders</h3>
-          <p class="card-desc">Track real-time customer balances. Send automated WhatsApp payment reminders with direct online payment links.</p>
-        </div>
-        <div class="card primary">
-          <div class="card-icon">👥</div>
-          <h3 class="card-title">Multi-Role Counter Interfaces</h3>
-          <p class="card-desc">Clean, dedicated portals for Store Owners, Cashier POS counters, Delivery Partners, and Accountants.</p>
+        <div class="slide-img-box">
+          <img src="/presentation/dashboard.png" alt="Vyapar 2.0 Real Live Dashboard">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 4: KEY OPERATIONAL MODULES ================= -->
+    <!-- ================= SLIDE 4: KEY OPERATIONAL MODULES (With Real Invoices Image) ================= -->
     <section class="slide" id="slide-4">
       <div class="slide-header">
         <div>
@@ -529,31 +524,36 @@
           <p class="slide-subtitle">Four integrated pillars powering the entire business workflow in real-time.</p>
         </div>
       </div>
-      <div class="content-grid grid-2x2">
-        <div class="card primary">
-          <div class="card-icon">🧾</div>
-          <h3 class="card-title">Sales & Invoicing Module</h3>
-          <p class="card-desc">Create customized invoices with dynamic line discounts, multi-tier GST slabs, and instant PDF downloads with one click.</p>
+      <div class="split-grid">
+        <div class="sub-grid-2x2">
+          <div class="card primary">
+            <div class="card-icon">🧾</div>
+            <h3 class="card-title">Sales & Invoicing</h3>
+            <p class="card-desc">Create customized invoices with dynamic line discounts, multi-tier GST slabs, and instant PDF downloads in 1 click.</p>
+          </div>
+          <div class="card success">
+            <div class="card-icon">🛒</div>
+            <h3 class="card-title">Purchase & Suppliers</h3>
+            <p class="card-desc">Record supplier stock-in shipments, track accounts payable, and manage vendor payment histories with zero errors.</p>
+          </div>
+          <div class="card danger">
+            <div class="card-icon">💰</div>
+            <h3 class="card-title">Expense Ledger</h3>
+            <p class="card-desc">Categorize daily shop expenses (rent, salaries, electricity) to get an accurate daily net profit calculation.</p>
+          </div>
+          <div class="card cyan">
+            <div class="card-icon">🤝</div>
+            <h3 class="card-title">Parties & Khata CRM</h3>
+            <p class="card-desc">Complete 360-degree party profile with detailed transaction ledgers, credit limits, and settlement tracking.</p>
+          </div>
         </div>
-        <div class="card success">
-          <div class="card-icon">🛒</div>
-          <h3 class="card-title">Purchase & Supplier Management</h3>
-          <p class="card-desc">Record supplier stock-in shipments, track accounts payable, and manage vendor payment histories with zero errors.</p>
-        </div>
-        <div class="card danger">
-          <div class="card-icon">💰</div>
-          <h3 class="card-title">Expense & Cash Flow Ledger</h3>
-          <p class="card-desc">Categorize daily shop expenses (rent, salaries, electricity) to get an accurate daily net profit and cash-in-hand calculation.</p>
-        </div>
-        <div class="card cyan">
-          <div class="card-icon">🤝</div>
-          <h3 class="card-title">Parties & Khata CRM</h3>
-          <p class="card-desc">Complete 360-degree party profile with detailed transaction ledgers, credit limits, and automated settlement tracking.</p>
+        <div class="slide-img-box">
+          <img src="/presentation/invoices.png" alt="Vyapar 2.0 Invoices and Sales Module">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 5: LIVE GPS DELIVERY TRACKING ================= -->
+    <!-- ================= SLIDE 5: LIVE GPS DELIVERY TRACKING (With Leaflet Map Image) ================= -->
     <section class="slide" id="slide-5">
       <div class="slide-header">
         <div>
@@ -562,7 +562,7 @@
           <p class="slide-subtitle">The competitive edge that traditional software like Tally or Marg completely lack.</p>
         </div>
       </div>
-      <div class="content-grid grid-split">
+      <div class="split-grid">
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <div class="card cyan" style="padding: 14px 18px;">
             <h3 class="card-title" style="font-size: 1.1rem;">🔗 Public Link — Zero Login Required</h3>
@@ -577,13 +577,13 @@
             <p class="card-desc">Calculates remaining distance in kilometers and updates estimated delivery time in real time as the driver travels.</p>
           </div>
         </div>
-        <div class="tracking-img-box">
+        <div class="slide-img-box">
           <img src="/presentation/tracking.png" alt="Live GPS Tracking Portal">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 6: TECH STACK ================= -->
+    <!-- ================= SLIDE 6: TECH STACK (With 3D Architecture Graphic) ================= -->
     <section class="slide" id="slide-6">
       <div class="slide-header">
         <div>
@@ -592,31 +592,36 @@
           <p class="slide-subtitle">Designed for sub-second response times, zero server crashes, and enterprise scalability.</p>
         </div>
       </div>
-      <div class="content-grid grid-2x2">
-        <div class="card primary">
-          <div class="card-icon">⚛️</div>
-          <h3 class="card-title">Frontend: React 19 + Vite</h3>
-          <p class="card-desc">Blazing-fast client bundle, instant route transitions, zero page reloads, and seamless responsiveness across laptops, tablets, and mobile.</p>
+      <div class="split-grid">
+        <div class="sub-grid-2x2">
+          <div class="card primary">
+            <div class="card-icon">⚛️</div>
+            <h3 class="card-title">React 19 + Vite</h3>
+            <p class="card-desc">Blazing-fast client bundle, instant route transitions, zero page reloads, and mobile responsiveness.</p>
+          </div>
+          <div class="card success">
+            <div class="card-icon">🟢</div>
+            <h3 class="card-title">Node.js & Express</h3>
+            <p class="card-desc">High-throughput RESTful architecture powering live GPS streams, PDFKit generators, and barcode rendering.</p>
+          </div>
+          <div class="card cyan">
+            <div class="card-icon">🍃</div>
+            <h3 class="card-title">MongoDB Atlas</h3>
+            <p class="card-desc">Cloud-native NoSQL database handling dynamic catalog structures and geospatial delivery points safely.</p>
+          </div>
+          <div class="card purple">
+            <div class="card-icon">🔒</div>
+            <h3 class="card-title">Enterprise Security</h3>
+            <p class="card-desc">Strict JWT role-based access control (Admin, Driver, Cashier), encrypted credentials, and GSTR-1 audit exports.</p>
+          </div>
         </div>
-        <div class="card success">
-          <div class="card-icon">🟢</div>
-          <h3 class="card-title">Backend: Node.js & Express</h3>
-          <p class="card-desc">High-throughput RESTful architecture powering live GPS streams, PDF invoice generators (PDFKit), and barcode rendering.</p>
-        </div>
-        <div class="card cyan">
-          <div class="card-icon">🍃</div>
-          <h3 class="card-title">Database: MongoDB Atlas</h3>
-          <p class="card-desc">Cloud-native NoSQL database handling dynamic catalog structures, nested ledger transactions, and geospatial delivery points.</p>
-        </div>
-        <div class="card danger" style="border-left-color: var(--purple);">
-          <div class="card-icon">🔒</div>
-          <h3 class="card-title">Enterprise Security & Compliance</h3>
-          <p class="card-desc">Strict JWT role-based access control (Admin, Driver, Cashier), encrypted credentials, and automated GSTR-1 audit exports.</p>
+        <div class="slide-img-box">
+          <img src="/presentation/techstack.jpg" alt="3D MERN Stack Architecture">
         </div>
       </div>
     </section>
 
-    <!-- ================= SLIDE 7: BUSINESS IMPACT ================= -->
+    <!-- ================= SLIDE 7: BUSINESS IMPACT (With Live Inventory / Metric Image) ================= -->
     <section class="slide" id="slide-7">
       <div class="slide-header">
         <div>
@@ -625,26 +630,31 @@
           <p class="slide-subtitle">Measurable returns on investment for retail merchants and distributors.</p>
         </div>
       </div>
-      <div class="content-grid grid-2x2">
-        <div class="card success">
-          <div class="metric-number">2+ Hours</div>
-          <h3 class="card-title">Daily Time Saved</h3>
-          <p class="card-desc">Automated day-end book closing, tax calculation, and inventory reconciliation eliminate manual paperwork.</p>
+      <div class="split-grid">
+        <div class="sub-grid-2x2">
+          <div class="card success">
+            <div class="metric-number">2+ Hours</div>
+            <h3 class="card-title">Daily Time Saved</h3>
+            <p class="card-desc">Automated day-end book closing and stock reconciliation eliminate manual paperwork.</p>
+          </div>
+          <div class="card primary">
+            <div class="metric-number">40%</div>
+            <h3 class="card-title">Faster Debt Recovery</h3>
+            <p class="card-desc">Automated WhatsApp payment links and instant settlement reduce unpaid customer credit.</p>
+          </div>
+          <div class="card cyan">
+            <div class="metric-number">95%</div>
+            <h3 class="card-title">Fewer Support Calls</h3>
+            <p class="card-desc">Customers track their own packages on live GPS maps, eliminating endless inquiries.</p>
+          </div>
+          <div class="card purple">
+            <div class="metric-number">100%</div>
+            <h3 class="card-title">Audit & Tax Ready</h3>
+            <p class="card-desc">Single-click GSTR-1 summaries, P&L reports, and catalog exports make tax filing simple.</p>
+          </div>
         </div>
-        <div class="card primary">
-          <div class="metric-number">40%</div>
-          <h3 class="card-title">Faster Debt Recovery</h3>
-          <p class="card-desc">Automated WhatsApp payment links and instant online settlement reduce unpaid credit and overdue accounts.</p>
-        </div>
-        <div class="card cyan">
-          <div class="metric-number">95%</div>
-          <h3 class="card-title">Fewer Support Calls</h3>
-          <p class="card-desc">Customers track their own packages on live GPS maps, eliminating endless "Where is my parcel?" inquiries.</p>
-        </div>
-        <div class="card success">
-          <div class="metric-number">100%</div>
-          <h3 class="card-title">Audit & Tax Ready</h3>
-          <p class="card-desc">Single-click GSTR-1 summaries, P&L reports, and catalog exports make tax filing completely painless.</p>
+        <div class="slide-img-box">
+          <img src="/presentation/inventory.png" alt="Live Inventory and Metrics">
         </div>
       </div>
     </section>
@@ -670,7 +680,7 @@
           <a href="http://localhost:5173/login" target="_blank" class="btn btn-primary" style="text-decoration: none; padding: 10px 22px; font-size: 1rem;">
             Launch Vyapar 2.0 Live &rarr;
           </a>
-          <a href="/api/download-pptx" download="Vyapar_2.0_Presentation.pptx" class="btn btn-success" style="padding: 10px 22px; font-size: 1rem;">
+          <a href="/api/download-pptx" download="Vyapar_2.0_Official_Presentation.pptx" class="btn btn-success" style="padding: 10px 22px; font-size: 1rem;">
             📥 Download PowerPoint (.pptx)
           </a>
         </div>
@@ -687,7 +697,7 @@
         <button class="btn btn-primary" id="next-btn" onclick="nextSlide()">Next &#8594;</button>
         <button class="btn" onclick="toggleFullScreen()">⛶ Fullscreen (F)</button>
         <button class="btn" onclick="window.print()">🖨️ Save as PDF</button>
-        <a href="/api/download-pptx" download="Vyapar_2.0_Presentation.pptx" class="btn btn-success">📥 Download PPTX</a>
+        <a href="/api/download-pptx" download="Vyapar_2.0_Official_Presentation.pptx" class="btn btn-success">📥 Download PPTX</a>
       </div>
     </footer>
 

@@ -3434,20 +3434,15 @@ export default function Dashboard({ globalSearch = '' }) {
       if (res.ok) {
         if (field === 'email') {
           setShowEmailOtp(true);
-          if (data.otp) setEmailOtp(data.otp);
-          setEmailOtpMsg('✅ OTP sent to your email. Enter it below to verify.');
+          setEmailOtpMsg('✅ Verification code sent to your email. Enter it below to verify.');
         }
         if (field === 'phone') {
           setShowPhoneOtp(true);
-          if (data.otp) setPhoneOtp(data.otp);
-          setPhoneOtpMsg('✅ OTP sent via SMS. Enter it below to verify.');
-        }
-        if (data.note) {
-          setMsg(`ℹ️ ${data.note} Check server console for the OTP.`);
+          setPhoneOtpMsg('✅ Verification code sent via SMS. Enter it below to verify.');
         }
         startOtpCountdown(field);
       } else {
-        setMsg(`❌ ${data.message || 'Failed to send OTP. Try again.'}`);
+        setMsg(`❌ ${data.message || 'Failed to send verification code. Try again.'}`);
       }
     } catch (err) {
       setSending(false);

@@ -131,13 +131,10 @@ export default function Onboarding() {
                   const res = await fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username: user.username, field: 'email', value: form.email }) });
                   const j = await res.json().catch(()=>({}));
                   if (res.ok) {
-                    if (j.otp) {
-                      setEmailOtp(j.otp);
-                      alert(`Test OTP is: ${j.otp}\n(Auto-filled for you! Click Verify or continue below)`);
-                    } else {
-                      alert('OTP sent to your email.');
-                    }
-                  } else alert(j.message || 'Failed to send OTP');
+                    alert(j.message || 'Verification code sent to your email! Please check your inbox (and spam folder).');
+                  } else {
+                    alert(j.message || 'Failed to send OTP to email.');
+                  }
                 }} style={{ whiteSpace: 'nowrap' }}>Send OTP</button>
               </div>
               {!emailVerified && (
@@ -147,7 +144,7 @@ export default function Onboarding() {
                     if (!emailOtp) return alert('Enter OTP');
                     const res = await fetch('/api/verify-otp', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username: user.username, field: 'email', code: emailOtp }) });
                     const j = await res.json();
-                    if (res.ok) { setEmailVerified(true); alert('Email verified'); } else alert(j.message || 'Verification failed');
+                    if (res.ok) { setEmailVerified(true); alert('Email verified ✓'); } else alert(j.message || 'Verification failed');
                   }}>Verify</button>
                 </div>
               )}
@@ -161,13 +158,10 @@ export default function Onboarding() {
                   const res = await fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username: user.username, field: 'phone', value: form.phone }) });
                   const j = await res.json().catch(()=>({}));
                   if (res.ok) {
-                    if (j.otp) {
-                      setPhoneOtp(j.otp);
-                      alert(`Test OTP is: ${j.otp}\n(Auto-filled for you! Click Verify or continue below)`);
-                    } else {
-                      alert('OTP sent to your phone.');
-                    }
-                  } else alert(j.message || 'Failed to send OTP');
+                    alert(j.message || 'Verification code sent! Please check your messages.');
+                  } else {
+                    alert(j.message || 'Failed to send OTP.');
+                  }
                 }} style={{ whiteSpace: 'nowrap' }}>Send OTP</button>
               </div>
               {!phoneVerified && (

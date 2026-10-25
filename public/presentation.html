@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vyapar 2.0 - Official Presentation Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --bg-card: rgba(18, 25, 44, 0.75);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #10b981;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --cyan: #06b6d4;
+      --purple: #8b5cf6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at 10% 20%, #111827 0%, #030712 90%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Presentation Container (16:9 Aspect Ratio) */
+    .deck-container {
+      width: 100%;
+      max-width: 1200px;
+      aspect-ratio: 16 / 9;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Slides */
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 36px 56px 84px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(40px) scale(0.98);
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0) scale(1);
+      z-index: 2;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .slide-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 6px;
+    }
+
+    .slide-subtitle {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Slide Content Grid */
+    .content-grid {
+      display: grid;
+      gap: 16px;
+      flex: 1;
+      align-items: stretch;
+    }
+
+    .grid-2x2 {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+
+    .grid-split {
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .card-icon {
+      font-size: 1.7rem;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .card.danger {
+      border-left: 4px solid var(--danger);
+    }
+
+    .card.success {
+      border-left: 4px solid var(--secondary);
+    }
+
+    .card.primary {
+      border-left: 4px solid var(--primary);
+    }
+
+    .card.cyan {
+      border-left: 4px solid var(--cyan);
+    }
+
+    /* Slide 1 - Hero Specifics */
+    .hero-split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 36px;
+      height: 100%;
+      align-items: center;
+    }
+
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #ffffff 20%, #818cf8 60%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+
+    .hero-tagline {
+      font-size: 1.15rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tech-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .hero-image-box {
+      width: 100%;
+      height: 100%;
+      max-height: 380px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      background: #000;
+    }
+
+    .hero-image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Slide 4 Tracking Split */
+    .tracking-img-box {
+      width: 100%;
+      max-height: 340px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .tracking-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Metric Callout */
+    .metric-number {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--secondary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    /* Slide Footer Controls */
+    .deck-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 40px;
+      background: rgba(10, 15, 29, 0.95);
+      border-top: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .slide-counter {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .slide-counter span {
+      color: #fff;
+    }
+
+    /* Print / PDF Styles */
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0 !important;
+      }
+      .deck-controls {
+        display: none !important;
+      }
+      .deck-container {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        max-width: 100% !important;
+        aspect-ratio: auto !important;
+      }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        page-break-after: always !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        padding: 40px !important;
+        box-sizing: border-box !important;
+        background: #0f172a !important;
+        color: #fff !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 16:9 Presentation Deck Window -->
+  <div class="deck-container" id="deck">
+
+    <!-- ================= SLIDE 1 ================= -->
+    <section class="slide active" id="slide-1">
+      <div class="hero-split">
+        <div>
+          <div class="badge">🚀 Enterprise 2.0 Release</div>
+          <h1 class="hero-title">VYAPAR 2.0</h1>
+          <p class="hero-tagline">
+            Smart Accounting, Inventory & Real-Time Delivery Operating System for Modern Indian Merchants.
+          </p>
+          <div class="pill-group">
+            <span class="tech-pill">⚡ Real-Time GPS Tracking</span>
+            <span class="tech-pill">🧾 GST Invoices & POS</span>
+            <span class="tech-pill">📦 Barcode Engine</span>
+            <span class="tech-pill">📒 Digital Khata</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Presented by: <strong>Vyapar 2.0 Engineering Team</strong> • MERN Stack System
+          </p>
+        </div>
+        <div class="hero-image-box">
+          <img src="/presentation/hero.jpg" alt="Vyapar 2.0 Modern ERP Suite">
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 2 ================= -->
+    <section class="slide" id="slide-2">
+      <div class="slide-header">
+        <div>
+          <div class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">⚠️ The Everyday Struggle</div>
+          <h2 class="slide-title">Why Indian Merchants Struggle Today</h2>
+          <p class="slide-subtitle">Traditional paper books and legacy desktop tools create friction and loss every single day.</p>
+        </div>
+      </div>
+      <div class="content-grid grid-2x2">
+        <div class="card danger">
+          <div class="card-icon">📒</div>
+          <h3 class="card-title">Messy Paper Khata</h3>
+          <p class="card-desc">Customer credit entries get lost, forgotten, or disputed. Manual phone calls for payment collection feel awkward and waste hours.</p>
+        </div>
+        <div class="card danger">
+          <div class="card-icon">📦</div>
+          <h3 class="card-title">Blind Inventory Control</h3>
+          <p class="card-desc">Popular items run out of stock without notice, while slow-moving items expire unnoticed in the back warehouse.</p>
+        </div>
+        <div class="card danger">
+          <div class="card-icon">⏳</div>
+          <h3 class="card-title">Slow Counter Queues</h3>
+          <p class="card-desc">Typing prices by hand during peak rush hours creates long customer queues, manual calculation mistakes, and missed sales.</p>
+        </div>
+        <div class="card danger">
+          <div class="card-icon">🚚</div>
+          <h3 class="card-title">Zero Delivery Visibility</h3>
+          <p class="card-desc">Customers constantly call asking <em>"Where is my parcel?"</em> Merchants have no idea where delivery drivers are located.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 3 ================= -->
+    <section class="slide" id="slide-3">
+      <div class="slide-header">
+        <div>
+          <div class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">💡 The Modern Solution</div>
+          <h2 class="slide-title">Introducing Vyapar 2.0</h2>
+          <p class="slide-subtitle">A unified, web-first platform designed to run an entire business from a single screen.</p>
+        </div>
+      </div>
+      <div class="content-grid grid-2x2">
+        <div class="card primary">
+          <div class="card-icon">⚡</div>
+          <h3 class="card-title">Instant GST Billing & Thermal Receipts</h3>
+          <p class="card-desc">Generate professional A4 Tax Invoices or instant 58mm/80mm counter POS thermal receipts with automated GST compliance.</p>
+        </div>
+        <div class="card success">
+          <div class="card-icon">🏷️</div>
+          <h3 class="card-title">Barcode Generation & Scan Engine</h3>
+          <p class="card-desc">Automatically generate standard EAN-13 barcodes and QR codes. Print full A4 barcode sticker sheets in one click.</p>
+        </div>
+        <div class="card cyan">
+          <div class="card-icon">💳</div>
+          <h3 class="card-title">Digital Ledger & WhatsApp Reminders</h3>
+          <p class="card-desc">Track real-time customer balances. Send automated WhatsApp payment reminders with direct online payment links.</p>
+        </div>
+        <div class="card primary">
+          <div class="card-icon">👥</div>
+          <h3 class="card-title">Multi-Role Counter Interfaces</h3>
+          <p class="card-desc">Clean, dedicated portals for Store Owners, Cashier POS counters, Delivery Partners, and Accountants.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 4 ================= -->
+    <section class="slide" id="slide-4">
+      <div class="slide-header">
+        <div>
+          <div class="badge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.3);">🌟 The Showstopper Feature</div>
+          <h2 class="slide-title">Real-Time GPS Delivery Tracking</h2>
+          <p class="slide-subtitle">The competitive edge that traditional software like Tally or Marg completely lack.</p>
+        </div>
+      </div>
+      <div class="content-grid grid-split">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="card cyan" style="padding: 16px 20px;">
+            <h3 class="card-title" style="font-size: 1.15rem;">🔗 Public Link — Zero Login Required</h3>
+            <p class="card-desc">Customers receive an SMS or WhatsApp link to view their live delivery tracking directly in their mobile browser.</p>
+          </div>
+          <div class="card primary" style="padding: 16px 20px;">
+            <h3 class="card-title" style="font-size: 1.15rem;">🗺️ Live GPS Telematics & Interactive Map</h3>
+            <p class="card-desc">Live moving driver marker powered by Leaflet, displaying actual route geometry and vehicle coordinates.</p>
+          </div>
+          <div class="card success" style="padding: 16px 20px;">
+            <h3 class="card-title" style="font-size: 1.15rem;">⏱️ Dynamic Real-Time ETA</h3>
+            <p class="card-desc">Calculates remaining distance in kilometers and updates estimated delivery time in real time as the driver travels.</p>
+          </div>
+        </div>
+        <div class="tracking-img-box">
+          <img src="/presentation/tracking.png" alt="Live GPS Tracking Portal">
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 5 ================= -->
+    <section class="slide" id="slide-5">
+      <div class="slide-header">
+        <div>
+          <div class="badge" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-color: rgba(139, 92, 246, 0.3);">🛠️ Architecture & Tech Stack</div>
+          <h2 class="slide-title">Built on Rock-Solid Modern Tech</h2>
+          <p class="slide-subtitle">Designed for sub-second response times, zero server crashes, and enterprise scalability.</p>
+        </div>
+      </div>
+      <div class="content-grid grid-2x2">
+        <div class="card primary">
+          <div class="card-icon">⚛️</div>
+          <h3 class="card-title">Frontend: React 19 + Vite</h3>
+          <p class="card-desc">Blazing-fast client bundle, instant route transitions, zero page reloads, and seamless responsiveness across laptops, tablets, and mobile.</p>
+        </div>
+        <div class="card success">
+          <div class="card-icon">🟢</div>
+          <h3 class="card-title">Backend: Node.js & Express</h3>
+          <p class="card-desc">High-throughput RESTful architecture powering live GPS streams, PDF invoice generators (PDFKit), and barcode rendering.</p>
+        </div>
+        <div class="card cyan">
+          <div class="card-icon">🍃</div>
+          <h3 class="card-title">Database: MongoDB Atlas</h3>
+          <p class="card-desc">Cloud-native NoSQL database handling dynamic catalog structures, nested ledger transactions, and geospatial delivery points.</p>
+        </div>
+        <div class="card danger" style="border-left-color: var(--purple);">
+          <div class="card-icon">🔒</div>
+          <h3 class="card-title">Enterprise Security & Compliance</h3>
+          <p class="card-desc">Strict JWT role-based access control (Admin, Driver, Cashier), encrypted credentials, and automated GSTR-1 audit exports.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SLIDE 6 ================= -->
+    <section class="slide" id="slide-6">
+      <div class="slide-header">
+        <div>
+          <div class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">🎯 Business Value & Conclusion</div>
+          <h2 class="slide-title">Real World Business Impact</h2>
+          <p class="slide-subtitle">Measurable returns on investment for retail merchants and distributors.</p>
+        </div>
+      </div>
+      <div class="content-grid grid-2x2" style="margin-bottom: 16px;">
+        <div class="card success">
+          <div class="metric-number">2+ Hours</div>
+          <h3 class="card-title">Daily Time Saved</h3>
+          <p class="card-desc">Automated day-end book closing, tax calculation, and inventory reconciliation eliminate manual paperwork.</p>
+        </div>
+        <div class="card primary">
+          <div class="metric-number">40%</div>
+          <h3 class="card-title">Faster Debt Recovery</h3>
+          <p class="card-desc">Automated WhatsApp payment links and instant online settlement reduce unpaid credit and overdue accounts.</p>
+        </div>
+        <div class="card cyan">
+          <div class="metric-number">95%</div>
+          <h3 class="card-title">Fewer Support Calls</h3>
+          <p class="card-desc">Customers track their own packages on live GPS maps, eliminating endless "Where is my parcel?" inquiries.</p>
+        </div>
+        <div class="card success">
+          <div class="metric-number">100%</div>
+          <h3 class="card-title">Audit & Tax Ready</h3>
+          <p class="card-desc">Single-click GSTR-1 summaries, P&L reports, and catalog exports make tax filing completely painless.</p>
+        </div>
+      </div>
+      <div style="background: linear-gradient(90deg, rgba(99,102,241,0.2), rgba(16,185,129,0.2)); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-family: 'Outfit'; font-size: 1.15rem; font-weight: 700; color: #fff;">✨ Ready for the Live Demonstration</span>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Switch over to the live application at http://localhost:5173</p>
+        </div>
+        <a href="http://localhost:5173/login" target="_blank" class="btn btn-primary" style="text-decoration: none;">Launch Vyapar 2.0 Live &rarr;</a>
+      </div>
+    </section>
+
+    <!-- Presentation Deck Navigation Controls -->
+    <footer class="deck-controls">
+      <div class="slide-counter">
+        Slide <span id="current-slide">1</span> / <span id="total-slides">6</span>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn" id="prev-btn" onclick="prevSlide()">&#8592; Previous</button>
+        <button class="btn btn-primary" id="next-btn" onclick="nextSlide()">Next &#8594;</button>
+        <button class="btn" onclick="toggleFullScreen()">⛶ Fullscreen (F)</button>
+        <button class="btn" onclick="window.print()">🖨️ Save as PDF</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function showSlide(index) {
+      if (index < 1) index = 1;
+      if (index > totalSlides) index = totalSlides;
+      currentSlide = index;
+
+      document.querySelectorAll('.slide').forEach((slide, i) => {
+        slide.classList.toggle('active', (i + 1) === currentSlide);
+      });
+
+      document.getElementById('current-slide').innerText = currentSlide;
+      document.getElementById('prev-btn').disabled = (currentSlide === 1);
+      document.getElementById('next-btn').disabled = (currentSlide === totalSlides);
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
+    });
+
+    // Initialize
+    showSlide(1);
+  </script>
+</body>
+</html>

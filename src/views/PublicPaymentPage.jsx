@@ -715,7 +715,7 @@ export default function PublicPaymentPage({ invoiceId: propInvoiceId }) {
                     borderRadius: '4px',
                     display: 'inline-block'
                   }}>
-                    {merchant.upiId || 'merchant@upi'}
+                    {merchant.upiId || 'mayurpandav128@okhdfcbank'}
                   </p>
                 </div>
               </div>

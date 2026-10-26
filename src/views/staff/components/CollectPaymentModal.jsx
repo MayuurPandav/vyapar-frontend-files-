@@ -15,8 +15,8 @@ export default function CollectPaymentModal({ invoice, business, onPaymentSucces
   const totalAmount = Number(invoice.totalAmount || 0);
   const paidAmount = Number(invoice.paidAmount || 0);
   const balanceDue = Math.max(0, Number(invoice.balanceDue ?? (totalAmount - paidAmount)));
-  const bizName = business?.name || business?.businessName || 'Vyapar Merchant';
-  const vpa = business?.upiId || 'vyapar@upi';
+  const bizName = business?.name || business?.businessName || 'Mayur Pandav';
+  const vpa = business?.upiId || 'mayurpandav128@okhdfcbank';
 
   // Build standard Dynamic UPI Intent string
   const upiIntentString = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(bizName)}&am=${balanceDue.toFixed(2)}&tr=${encodeURIComponent(invoiceId)}&tn=${encodeURIComponent(`Bill #${invoiceId}`)}&cu=INR`;

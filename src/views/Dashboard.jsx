@@ -4596,7 +4596,7 @@ export default function Dashboard({ globalSearch = '' }) {
                             <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: '6px', textAlign: 'center' }}>
                               <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-3)', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Scan to Pay via UPI</span>
                               <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`upi://pay?pa=${dbData.settings?.upiId || 'merchant@upi'}&pn=${encodeURIComponent(dbData.settings?.businessName || 'Merchant')}&am=${(() => {
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`upi://pay?pa=${dbData.settings?.upiId || 'mayurpandav128@okhdfcbank'}&pn=${encodeURIComponent(dbData.settings?.businessName || 'Mayur Pandav')}&am=${(() => {
                                   const discount = calculateOfferDiscount(appliedOffer, saleItems, t.total, saleCust);
                                   const grandTotal = Math.max(0, Math.round(t.total - discount));
                                   return salePaidAmount !== '' ? (parseFloat(salePaidAmount) || grandTotal) : grandTotal;
@@ -4604,7 +4604,7 @@ export default function Dashboard({ globalSearch = '' }) {
                                 alt="UPI QR Code" 
                                 style={{ width: '110px', height: '110px', borderRadius: '4px', border: '4px solid #fff' }}
                               />
-                              <span style={{ fontSize: '10px', color: 'var(--text-2)', display: 'block', marginTop: '4px' }}>UPI ID: {dbData.settings?.upiId || 'merchant@upi'}</span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-2)', display: 'block', marginTop: '4px' }}>UPI ID: {dbData.settings?.upiId || 'mayurpandav128@okhdfcbank'}</span>
                             </div>
                           )}
                         </>
@@ -11950,13 +11950,13 @@ export default function Dashboard({ globalSearch = '' }) {
                 {(activeInvoice.mode === 'UPI' || (activeInvoice.balanceDue !== undefined ? activeInvoice.balanceDue > 0 : activeInvoice.status !== 'Paid')) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=85x85&data=${encodeURIComponent(`upi://pay?pa=${dbData.settings?.upiId || 'merchant@upi'}&pn=${encodeURIComponent(dbData.settings?.businessName || 'Merchant')}&am=${activeInvoice.balanceDue !== undefined ? Math.round(activeInvoice.balanceDue) : Math.round(activeInvoice.amount)}&cu=INR`)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=85x85&data=${encodeURIComponent(`upi://pay?pa=${dbData.settings?.upiId || 'mayurpandav128@okhdfcbank'}&pn=${encodeURIComponent(dbData.settings?.businessName || 'Mayur Pandav')}&am=${activeInvoice.balanceDue !== undefined ? Math.round(activeInvoice.balanceDue) : Math.round(activeInvoice.amount)}&cu=INR`)}`}
                       alt="UPI QR Code" 
                       style={{ width: '85px', height: '85px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                     <div style={{ fontSize: '11px', color: '#475569', textAlign: 'left' }}>
                       <strong style={{ display: 'block', marginBottom: '2px' }}>Scan to Pay via UPI</strong>
-                      <span style={{ fontSize: '10px' }}>UPI ID: {dbData.settings?.upiId || 'merchant@upi'}</span>
+                      <span style={{ fontSize: '10px' }}>UPI ID: {dbData.settings?.upiId || 'mayurpandav128@okhdfcbank'}</span>
                       {activeInvoice.balanceDue !== undefined && activeInvoice.balanceDue > 0 && (
                         <span style={{ display: 'block', marginTop: '2px', color: '#ef4444', fontWeight: 'bold' }}>
                           Due: {fmt(activeInvoice.balanceDue)}

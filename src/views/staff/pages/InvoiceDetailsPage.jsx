@@ -217,14 +217,14 @@ const InvoiceDetailsPage = () => {
               <div style={{ marginTop: 16, padding: 12, background: 'var(--body-bg, #ffffff)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', margin: '0 0 8px 0' }}>📲 SCAN TO PAY ₹{balanceDue.toLocaleString()}</p>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <QRCode value={`upi://pay?pa=vyapar@upi&pn=${encodeURIComponent(business.name)}&am=${balanceDue.toFixed(2)}&tr=${encodeURIComponent(invoice.invoiceNumber || id)}&tn=${encodeURIComponent(`Bill #${invoice.invoiceNumber || id}`)}&cu=INR`} size={110} />
+                  <QRCode value={`upi://pay?pa=${encodeURIComponent(business.upiId || 'mayurpandav128@okhdfcbank')}&pn=${encodeURIComponent(business.name || 'Mayur Pandav')}&am=${balanceDue.toFixed(2)}&tr=${encodeURIComponent(invoice.invoiceNumber || id)}&tn=${encodeURIComponent(`Bill #${invoice.invoiceNumber || id}`)}&cu=INR`} size={110} />
                 </div>
                 <p style={{ fontSize: 10, color: 'var(--text-3)', margin: '6px 0 0 0' }}>Google Pay • PhonePe • Paytm</p>
               </div>
             )}
             {invoice.paymentMode === 'UPI' && balanceDue <= 0 && (
               <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <QRCode value={`upi://pay?pa=vyapar@upi&pn=${encodeURIComponent(invoice.customerName)}&am=${totalAmount}`} size={120} />
+                <QRCode value={`upi://pay?pa=${encodeURIComponent(business.upiId || 'mayurpandav128@okhdfcbank')}&pn=${encodeURIComponent(invoice.customerName || 'Customer')}&am=${totalAmount}`} size={120} />
               </div>
             )}
           </div>
